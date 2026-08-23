@@ -1,0 +1,28 @@
+# 构建输出
+bin/
+obj/
+publish/
+*.user
+*.suo
+
+# 日志
+logs/
+
+# ⚠️ 敏感/运行时生成文件（不提交）：
+# - appsettings.json 含 API 密钥，请复制 appsettings.example.json 为 appsettings.json 后填入
+src/DivaVoiceAssistant/Config/appsettings.json
+# - 软件清单含本机安装路径，属个人隐私
+src/DivaVoiceAssistant/Config/software-inventory.json
+src/DivaVoiceAssistant/Config/软件清单.md
+
+# 测试音频
+*.wav
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.swp
+
+# 测试结果
+TestResults/

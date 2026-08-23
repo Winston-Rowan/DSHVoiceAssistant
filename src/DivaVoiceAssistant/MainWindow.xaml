@@ -1,0 +1,96 @@
+<Window x:Class="DivaVoiceAssistant.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctl="clr-namespace:DivaVoiceAssistant.Controls"
+        Title="Diva 语音助手"
+        Width="500" Height="680"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Microsoft YaHei UI">
+
+    <Border CornerRadius="16" Background="#F5F7FB" BorderBrush="#22000000" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 -->
+            <Border Grid.Row="0" Background="#3B6FF5" CornerRadius="16,16,0,0"
+                    MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,10,0,10">
+                        <TextBlock Text="🎤" FontSize="18" Foreground="White" />
+                        <TextBlock Text=" Diva 语音助手" FontSize="16" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="⚙" Style="{StaticResource TitleBarButton}" ToolTip="设置" Click="SettingsButton_OnClick" />
+                    <Button Grid.Column="2" Content="–" Style="{StaticResource TitleBarButton}" ToolTip="最小化" Click="MinimizeButton_OnClick" />
+                    <Button Grid.Column="3" Content="✕" Style="{StaticResource TitleBarButton}" ToolTip="最小化到托盘" Click="CloseButton_OnClick" />
+                </Grid>
+            </Border>
+
+            <!-- 状态区 -->
+            <Grid Grid.Row="1" Margin="20,14,20,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="12" Height="12" VerticalAlignment="Center"
+                         Fill="{Binding State, Converter={StaticResource StatusToColor}}" />
+                <TextBlock Grid.Column="1" Text="{Binding State, Converter={StaticResource StateToText}}"
+                           FontSize="15" FontWeight="SemiBold" Foreground="#22303F"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                <TextBlock Grid.Column="2" Text="唤醒词: Diva" FontSize="12" Foreground="#7A8699" VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- 音量波形 -->
+            <Border Grid.Row="2" Margin="20,4,20,0" Background="#E9EEF7" CornerRadius="12" Height="110">
+                <ctl:WaveformControl x:Name="Waveform" Margin="10" BarColor="#3B6FF5" />
+            </Border>
+
+            <!-- 内容区 -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="20,12,20,0">
+                <StackPanel>
+                    <TextBlock Text="识别文本" FontSize="12" Foreground="#7A8699" />
+                    <TextBlock Text="{Binding RecognizedText}" FontSize="14" Foreground="#22303F"
+                               TextWrapping="Wrap" Margin="0,2,0,10" />
+
+                    <TextBlock Text="Diva 回复（DSH）" FontSize="12" Foreground="#7A8699" />
+                    <TextBlock Text="{Binding DSHReplyText}" FontSize="14" Foreground="#2E7CF6"
+                               TextWrapping="Wrap" Margin="0,2,0,10" />
+
+                    <TextBlock Text="最近指令" FontSize="12" Foreground="#7A8699" />
+                    <ListBox ItemsSource="{Binding History}" MaxHeight="130"
+                             Background="Transparent" BorderThickness="0"
+                             FontSize="12" Foreground="#55606F"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 按钮区 -->
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,18">
+                <Button Content="{Binding MicButtonText}" Style="{StaticResource ActionButton}"
+                        Command="{Binding ToggleMuteCommand}" Margin="0,0,10,0" />
+                <Button Content="🎤 立即对话" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding ForceActivateCommand}" Margin="0,0,10,0" />
+                <Button Content="⚙ 设置" Style="{StaticResource ActionButton}"
+                        Command="{Binding OpenSettingsCommand}" Margin="0,0,10,0" />
+                <Button Content="退出" Style="{StaticResource ActionButton}"
+                        Command="{Binding ExitCommand}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
