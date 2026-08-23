@@ -14,19 +14,19 @@ if errorlevel 1 (
 )
 
 echo [1/3] 还原 NuGet 包...
-dotnet restore DivaVoiceAssistant.sln
+dotnet restore DSHVoiceAssistant.sln
 if errorlevel 1 goto :err
 
 echo [2/3] 编译解决方案（Release）...
-dotnet build DivaVoiceAssistant.sln -c Release --no-restore
+dotnet build DSHVoiceAssistant.sln -c Release --no-restore
 if errorlevel 1 goto :err
 
 echo [3/3] 发布可执行版本（框架依赖）...
-dotnet publish src\DivaVoiceAssistant\DivaVoiceAssistant.csproj -c Release --no-restore -o publish\win-x64
+dotnet publish src\DSHVoiceAssistant\DSHVoiceAssistant.csproj -c Release --no-restore -o publish\win-x64
 if errorlevel 1 goto :err
 
 echo.
-echo 构建成功！程序位于: publish\win-x64\DivaVoiceAssistant.exe
+echo 构建成功！程序位于: publish\win-x64\DSHVoiceAssistant.exe
 echo 提示: 运行需要本机安装 .NET 8 Desktop Runtime（一般安装 SDK 时已包含）。
 exit /b 0
 

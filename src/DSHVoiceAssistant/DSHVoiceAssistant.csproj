@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DSHVoiceAssistant</AssemblyName>
+    <RootNamespace>DSHVoiceAssistant</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>DSH 语音助手</Product>
+    <Description>基于 DSH 指令引擎的 Windows 语音助手（语音采集/唤醒/展示 + 云端指令执行）</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 麦克风采集 -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <!-- 本地 TTS -->
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <!-- 依赖注入 -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 配置文件随输出目录复制 -->
+    <None Update="Config\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 # API 集成文档
 
-Diva 语音助手调用阿里云百炼工作台的接口如下：
+DSH 语音助手调用阿里云百炼工作台的接口如下：
 
 | 用途 | 端点 | 模型 |
 |------|------|------|
@@ -19,7 +19,7 @@ https://ws-fdenp5x6eqwcud4u.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
 > （即从 ApiHost 去掉 `/compatible-mode/v1` 后缀）。
 
 认证：所有请求携带 `Authorization: Bearer <ApiKey>`。
-密钥可在 `Config\appsettings.json` 配置，也可通过环境变量 `DIVA_API_KEY` 覆盖。
+密钥可在 `Config\appsettings.json` 配置，也可通过环境变量 `DSH_API_KEY` 覆盖。
 
 > 模型名必须以你的百炼工作台实际开通的模型为准。若调用报 404/InvalidParameter，
 > 请在百炼工作台"模型广场"确认可用的语音识别模型与对话模型名称
@@ -134,7 +134,7 @@ Authorization: Bearer <ApiKey>
 | `file_operation` | 文件/目录路径 | `params.operation`: `open` / `reveal` / `delete`（delete 必须带 `confirm=true`） |
 | `custom_script` | PowerShell 命令文本 | 执行 PowerShell（超时 60 秒） |
 
-解析策略（`Utils/DivaCommandParser.cs`）：
+解析策略（`Utils/DSHCommandParser.cs`）：
 
 1. 提取首个完整 JSON 对象（自动剥离 Markdown 围栏与前后杂文）
 2. 缺少 `action` 或解析失败 → 兜底为 `text_reply`，朗读原始内容
@@ -143,7 +143,7 @@ Authorization: Bearer <ApiKey>
 ### DSH 系统角色提示词（内置于 DSHCommandService.cs）
 
 ```
-你是Diva，一个Windows桌面语音助手的执行引擎。你的任务是将用户的自然语言指令转换为可执行的格式化命令。
+你是{WAKE_WORD}，一个Windows桌面语音助手的执行引擎。你的任务是将用户的自然语言指令转换为可执行的格式化命令。
 
 【指令转换规则】
 1. 打开应用/软件 → action: "open_app"
@@ -171,7 +171,7 @@ Authorization: Bearer <ApiKey>
 - open_app 的 target 只给程序名或路径，不要带引号
 ```
 
-如需调整 Diva 的能力边界（新增动作、更换回复风格），直接修改
+如需调整 二狗 的能力边界（新增动作、更换回复风格），直接修改
 `DSHCommandService.SystemPrompt` 即可——这就是"DSH 引擎"的规则面。
 
 ---

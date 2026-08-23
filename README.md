@@ -1,7 +1,7 @@
-# 🎤 Diva 语音助手（DSH 驱动版）
+# 🎤 DSH 语音助手（DSH 驱动版）
 
 一个 Windows 桌面语音助手（C# / WPF / .NET 8），类似 Siri 的使用体验：
-对着麦克风说 **"Diva"** 唤醒，然后说出指令（如"打开记事本""搜索深圳天气""下一首"），
+对着麦克风说 **"二狗"** 唤醒（可在设置中自定义），然后说出指令（如"打开记事本""搜索深圳天气""下一首"），
 助手会**朗读回复并执行动作**。
 
 > **执行引擎说明**：本应用的所有指令理解与决策均由大模型完成——应用通过
@@ -17,14 +17,14 @@
 
 ## ✨ 功能特性
 
-- 🎙️ **本地语音唤醒**：说 "Diva"（支持中文音译"迪瓦/迪娃"等变体）即可唤醒——
-  使用 Windows 内置识别引擎**完全本地、免费、离线**，不消耗任何 API 算力
+- 🎙️ **本地语音唤醒**：说"二狗"即可唤醒（唤醒词可在设置中自定义，支持变体列表）——
+  使用 Windows 内置识别引擎**完全本地、免费、离线**，不消耗任何 API 算力；唤醒后无提示音、静默倾听
 - 🗂️ **软件归档引擎**：启动时自动扫描桌面（含子文件夹）/开始菜单快捷方式、注册表卸载项、
   App Paths、Steam/Epic 游戏库，生成软件清单（`Config\软件清单.md` 可查看）；
   "打开游戏/软件"通过清单智能查找（支持"战神5"→"战神：诸神黄昏"这类简称匹配），
   找不到时可手动"重新扫描已装软件"或在设置中添加别名
 - 💬 **连续对话**：唤醒一次即可连续下达多条指令（无需再次呼叫），
-  可随时**插嘴打断** Diva 的播报；沉默 30 秒（可配置）后自动待命等待再次呼叫
+  可随时**插嘴打断** 二狗的播报；沉默 30 秒（可配置）后自动待命等待再次呼叫
 - ⌨️ **快捷键唤醒**：`Ctrl+Alt+D` 全局快捷键
 - 🧠 **DSH 指令引擎**：大模型将自然语言转换为结构化指令，支持 8 类动作
   （打开应用 / 网络搜索 / 系统命令 / 文件操作 / 文本回复 / 自定义脚本 / 媒体控制 / 打开网址）
@@ -34,14 +34,14 @@
   离线/失败自动回退 Windows 本地语音
 - 📊 **波形可视化**：实时音量波形 + 状态指示灯（绿=待命/黄=倾听/蓝=处理/紫=回复/红=出错）
 - 🗔 **系统托盘**：状态颜色随状态变化，右键菜单控制显示/监听/退出
-- 📝 **命令历史**：界面展示最近指令与 Diva 回复
+- 📝 **命令历史**：界面展示最近指令与二狗回复
 - ⚙️ **设置窗口**：API 配置、麦克风设备、VAD 阈值、语速音量、开机自启等
 - 🛡️ **健壮性**：全局异常兜底、日志落盘、断网提示不崩溃、单实例保护
 
 ## 🧱 技术架构
 
 ```
-用户语音 → Diva应用(NAudio麦克风采集)
+用户语音 → DSH应用(NAudio麦克风采集)
         ├─ 本地唤醒引擎(SAPI词表识别) → 命中唤醒词（免费/离线/即时）
         └─ 指令录音 → 云端语音识别(qwen3.5-omni-flash多模态网关) → 文本指令
         → DSH引擎(chat/completions + 系统提示词) → 结构化JSON指令
@@ -69,24 +69,24 @@
 build.bat
 ```
 
-方式 B（Visual Studio 2022）：打开 `DivaVoiceAssistant.sln` → 生成解决方案。
+方式 B（Visual Studio 2022）：打开 `DSHVoiceAssistant.sln` → 生成解决方案。
 
 方式 C（dotnet CLI）：
 
 ```bat
-dotnet restore DivaVoiceAssistant.sln
-dotnet build DivaVoiceAssistant.sln -c Release
-dotnet publish src\DivaVoiceAssistant\DivaVoiceAssistant.csproj -c Release -o publish\win-x64
+dotnet restore DSHVoiceAssistant.sln
+dotnet build DSHVoiceAssistant.sln -c Release
+dotnet publish src\DSHVoiceAssistant\DSHVoiceAssistant.csproj -c Release -o publish\win-x64
 ```
 
-产物：`publish\win-x64\DivaVoiceAssistant.exe`
+产物：`publish\win-x64\DSHVoiceAssistant.exe`
 
 ### 2. 配置
 
 编辑程序目录下 `Config\appsettings.json`（首次运行自动生成），重点确认：
 
 ```json
-"ApiKey": "sk-ws-...",          // 百炼工作台密钥（也可用环境变量 DIVA_API_KEY 覆盖）
+"ApiKey": "sk-ws-...",          // 百炼工作台密钥（也可用环境变量 DSH_API_KEY 覆盖）
 "ApiHost": "https://...maas.aliyuncs.com/compatible-mode/v1",
 "SpeechModel": "qwen3.5-omni-flash", // 指令语音识别模型（工作台可用 omni 模型）
 "DSHModel": "deepseek-v4-flash", // 指令引擎模型（与 DSH 同款，需为工作台可用模型）
@@ -94,25 +94,25 @@ dotnet publish src\DivaVoiceAssistant\DivaVoiceAssistant.csproj -c Release -o pu
 ```
 
 > ⚠️ 请保管好 API 密钥；**`appsettings.json` 已加入 .gitignore 不会提交**，
-> 仓库中提供 `src\DivaVoiceAssistant\Config\appsettings.example.json` 作为配置模板：
-> 首次使用请复制为 `appsettings.json` 并填入密钥（或设置环境变量 `DIVA_API_KEY`）。
+> 仓库中提供 `src\DSHVoiceAssistant\Config\appsettings.example.json` 作为配置模板：
+> 首次使用请复制为 `appsettings.json` 并填入密钥（或设置环境变量 `DSH_API_KEY`）。
 > 应用首次运行（配置文件缺失）时也会自动生成默认配置。
 
 ### 3. 使用
 
 1. 启动应用 → 状态"待命中"（🟢）
-2. 说 **"Diva"**（或按 **Ctrl+Alt+D**）→ 提示音 + 状态"倾听中"（🟡）
+2. 说 **"二狗"**（或按 **Ctrl+Alt+D**）→ 状态"倾听中"（🟡）
 3. 说出指令，如"打开记事本"、"搜索深圳天气"、"下一首"
-4. Diva 执行动作并语音回复
+4. 二狗执行动作并语音回复
 
 ## 📁 项目结构
 
 ```
-DivaVoiceAssistant/
-├── DivaVoiceAssistant.sln
+DSHVoiceAssistant/
+├── DSHVoiceAssistant.sln
 ├── build.bat                        # 一键构建
 ├── src/
-│   ├── DivaVoiceAssistant/          # WPF 主项目
+│   ├── DSHVoiceAssistant/          # WPF 主项目
 │   │   ├── App.xaml(.cs)            # 入口：DI装配/异常兜底/单实例
 │   │   ├── MainWindow.xaml(.cs)     # 主界面
 │   │   ├── SettingsWindow.xaml(.cs) # 设置窗口
@@ -123,7 +123,7 @@ DivaVoiceAssistant/
 │   │   ├── Controls/                # 波形可视化控件
 │   │   ├── Utils/                   # 日志/VAD/JSON解析/WAV封装/媒体键/自启动
 │   │   └── Config/appsettings.json
-│   └── DivaVoiceAssistant.Tests/    # xUnit 单元测试
+│   └── DSHVoiceAssistant.Tests/    # xUnit 单元测试
 └── docs/                            # API文档/部署指南/架构设计/故障排除
 ```
 
@@ -137,7 +137,7 @@ DivaVoiceAssistant/
 ## 🔬 测试
 
 ```bat
-dotnet test DivaVoiceAssistant.sln
+dotnet test DSHVoiceAssistant.sln
 ```
 
 覆盖：DSH 返回解析（JSON/fenced/兜底）、唤醒词匹配、动作映射、搜索 URL 构造、系统命令参数。
