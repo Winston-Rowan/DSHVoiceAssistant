@@ -28,6 +28,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 ; 安装包内容（release-stage 已剔除用户配置/日志，首次运行自动生成默认配置）
 Source: "..\release-stage\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; 小白使用说明（安装完成后可勾选查看）
+Source: "使用说明.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autodesktop}\DSH 语音助手"; Filename: "{app}\DSHVoiceAssistant.exe"
@@ -35,6 +37,7 @@ Name: "{autoprograms}\DSH 语音助手"; Filename: "{app}\DSHVoiceAssistant.exe"
 
 [Run]
 Filename: "{app}\DSHVoiceAssistant.exe"; Description: "立即启动 DSH 语音助手"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\使用说明.txt"; Description: "查看使用说明（2 分钟上手）"; Flags: nowait postinstall skipifsilent unchecked
 
 [Code]
 { ---------- DSH 前置检测：未安装则询问是否安装，否则退出本安装 ---------- }

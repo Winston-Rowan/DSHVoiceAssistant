@@ -86,6 +86,15 @@ public partial class App : WpfApplication
         MainWindow = window;
         if (!silent) window.Show(); // 静默启动不显示界面，托盘双击/右键可随时调出
 
+        // 首次运行引导：未配置 API 密钥时弹出（新手友好，无需懂百炼/DSH 即可完成配置）
+        var hasKey = !string.IsNullOrWhiteSpace(config.ApiKey)
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DSH_API_KEY"));
+        if (!hasKey)
+        {
+            var guide = new SetupGuideWindow(config) { Owner = window };
+            guide.Show();
+        }
+
         _orchestrator.Start();
 
         // 后台归档已安装软件（桌面/开始菜单快捷方式、注册表、Steam/Epic），供 open_game/open_app 查找

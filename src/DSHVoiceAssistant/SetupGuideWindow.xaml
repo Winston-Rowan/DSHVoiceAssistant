@@ -1,0 +1,55 @@
+<Window x:Class="DSHVoiceAssistant.SetupGuideWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="欢迎使用 DSH 语音助手"
+        Width="520" Height="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        FontFamily="Microsoft YaHei UI"
+        Background="#F5F7FB"
+        ShowInTaskbar="False">
+    <StackPanel Margin="28,24,28,20">
+
+        <TextBlock Text="🐋 欢迎使用 DSH 语音助手" FontSize="20" FontWeight="Bold" Foreground="#22303F" />
+        <TextBlock Text="还差一步配置，就可以开始语音对话了（全程 2 分钟）" Margin="0,6,0,0" FontSize="12" Foreground="#7A8699" />
+
+        <Border Background="#EAF2FF" CornerRadius="10" Padding="16,12" Margin="0,18,0,0">
+            <StackPanel>
+                <TextBlock Text="第 1 步：获取百炼 API 密钥（免费额度即可）" FontWeight="Bold" FontSize="13" Foreground="#22303F" />
+                <TextBlock Text="1. 点击下方按钮打开「阿里云百炼控制台」（未注册先免费注册）&#10;2. 页面右上角找到「API-KEY」→ 创建新的 API-KEY → 复制" 
+                           Margin="0,8,0,0" FontSize="12" Foreground="#55606F" LineHeight="20" TextWrapping="Wrap" />
+                <Button Content="🔑 打开百炼控制台（获取密钥）" Margin="0,10,0,0" Padding="12,7" HorizontalAlignment="Left"
+                        Background="#3B6FF5" Foreground="White" FontSize="12" Cursor="Hand"
+                        Click="OpenBailianConsole_OnClick" />
+            </StackPanel>
+        </Border>
+
+        <Border Background="#F0FBF4" CornerRadius="10" Padding="16,12" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Text="第 2 步：把密钥填进设置" FontWeight="Bold" FontSize="13" Foreground="#22303F" />
+                <TextBlock Text="点击「打开设置」→ 基础配置 → 把刚才复制的密钥粘贴到「API 密钥」→ 保存"
+                           Margin="0,8,0,0" FontSize="12" Foreground="#55606F" LineHeight="20" TextWrapping="Wrap" />
+                <Button Content="⚙️ 打开设置填写密钥" Margin="0,10,0,0" Padding="12,7" HorizontalAlignment="Left"
+                        Background="#3B6FF5" Foreground="White" FontSize="12" Cursor="Hand"
+                        Click="OpenSettings_OnClick" />
+            </StackPanel>
+        </Border>
+
+        <Border Background="#FFF8EC" CornerRadius="10" Padding="16,12" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Text="第 3 步：开始使用" FontWeight="Bold" FontSize="13" Foreground="#22303F" />
+                <TextBlock Text="对着麦克风说「老梁」，然后说出指令，例如：&#10;· 老梁，打开记事本&#10;· 老梁，搜索深圳天气&#10;· 老梁，5分钟后提醒我喝水"
+                           Margin="0,8,0,0" FontSize="12" Foreground="#55606F" LineHeight="20" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="💡 小知识：DSH 语音助手需要两个密钥——上面的「百炼密钥」在这里配置；另一个「DSH 密钥」由 DSH 运行环境自己使用（在 DSH Desktop 里配置），你不需要管它。"
+                   Margin="0,12,0,0" FontSize="11" Foreground="#9AA5B1" TextWrapping="Wrap" LineHeight="18" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="稍后再说" Width="90" Margin="0,0,10,0" Click="Later_OnClick" />
+            <Button Content="好的，开始吧" Width="110" Background="#3B6FF5" Foreground="White" Click="Later_OnClick" />
+        </StackPanel>
+
+    </StackPanel>
+</Window>
