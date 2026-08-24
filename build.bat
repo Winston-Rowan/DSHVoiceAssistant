@@ -1,9 +1,10 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
 echo ============================================
-echo   Diva Voice Assistant - 一键构建脚本
+echo   DSH 语音助手 - 一键构建脚本
 echo ============================================
 
 where dotnet >nul 2>nul
@@ -13,15 +14,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/3] 还原 NuGet 包...
+echo [1/4] 还原 NuGet 包...
 dotnet restore DSHVoiceAssistant.sln
 if errorlevel 1 goto :err
 
-echo [2/3] 编译解决方案（Release）...
+echo [2/4] 编译解决方案（Release）...
 dotnet build DSHVoiceAssistant.sln -c Release --no-restore
 if errorlevel 1 goto :err
 
-echo [3/3] 发布可执行版本（框架依赖）...
+echo [3/4] 运行单元测试...
+dotnet test DSHVoiceAssistant.sln -c Release --no-build
+if errorlevel 1 goto :err
+
+echo [4/4] 发布可执行版本（框架依赖）...
 dotnet publish src\DSHVoiceAssistant\DSHVoiceAssistant.csproj -c Release --no-restore -o publish\win-x64
 if errorlevel 1 goto :err
 

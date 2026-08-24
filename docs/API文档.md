@@ -162,6 +162,9 @@ Authorization: Bearer <ApiKey>
 7. 文件操作 → action: "file_operation"（params.operation: open/reveal/delete）
 8. 自定义命令/脚本 → action: "custom_script"（任意 PowerShell，通用执行通道）
 9. 打开游戏 → action: "open_game"
+10. 闹钟/提醒 → action: "reminder"（params: minutes / at + message）
+11. 全屏截图 → action: "screenshot"
+12. 剪贴板 → action: "clipboard"（params.operation: get / set）
 
 【输出格式】
 只输出一个JSON对象，不要输出任何多余文字、解释或Markdown代码块。字段：
@@ -179,8 +182,19 @@ Authorization: Bearer <ApiKey>
 - open_app 的 target 只给程序名或路径，不要带引号
 ```
 
-如需调整 二狗 的能力边界（新增动作、更换回复风格），直接修改
+如需调整 梁文峰 的能力边界（新增动作、更换回复风格），直接修改
 `DSHCommandService.SystemPrompt` 即可——这就是"DSH 引擎"的规则面。
+
+### 双 API 与汇报规则
+
+- **双 API**：指令引擎端点由 `SelectDshEndpoint(config)` 选择——填写 `DshApiKey`
+  （DeepSeek 官方，默认 `https://api.deepseek.com/v1`）则走 DSH API；留空回退百炼
+  （`ApiKey`/`ApiHost`，与语音识别共用）。环境变量 `DEEPSEEK_API_KEY` 可覆盖。
+- **汇报规则**（提示词强制）：复杂操作（脚本/git/批量/系统更改）不在过程中播报
+  中间推理，执行结束后统一汇报结果；简单操作可一句确认。
+- **汇报语言**：`ReportLanguage`（zh/en）注入提示词，所有语音回复强制使用该语言。
+- **权限模式**：`PermissionMode`（full/workspace/readonly）注入提示词，
+  执行器（CommandProcessor）另有硬性拦截。
 
 ---
 

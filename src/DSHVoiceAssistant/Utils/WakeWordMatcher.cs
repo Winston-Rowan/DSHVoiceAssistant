@@ -19,7 +19,7 @@ public static class WakeWordMatcher
 
     /// <summary>
     /// 若唤醒词出现在句首，则将其（及紧跟的标点）从文本中剥离。
-    /// 例如 "二狗，打开记事本" → "打开记事本"。
+    /// 例如 "老梁，打开记事本" → "打开记事本"。
     /// </summary>
     public static string StripLeadingWakeWord(string text, IEnumerable<string> variants)
     {
