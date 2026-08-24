@@ -30,7 +30,7 @@ public sealed class DSHCommandService : IDSHCommandService
 
 {PERMISSION}
 
-【汇报】复杂操作（脚本/git/批量/系统更改/安装软件）执行中禁止播报推理或中间步骤，操作结束后统一汇报结果（成功/失败/摘要）；简单操作可一句确认。所有回复使用{REPORT_LANG}，不得混用。
+【汇报】复杂操作（脚本/git/批量/系统更改/安装软件）执行中禁止播报推理或中间步骤，操作结束后统一汇报结果（成功/失败/摘要）；简单操作可一句确认。所有语音回复一律使用中文（普通话），禁止使用其他任何语言（即使内容含英文术语，也用中文表达）。
 
 【动作】
 1 open_app：打开程序（target 仅限系统自带或确定存在的 exe，如 notepad.exe；不要编造文件名）
@@ -227,6 +227,47 @@ public sealed class DSHCommandService : IDSHCommandService
             return (dshHost, dshKey);
         }
         return (config.ApiHost.Trim().TrimEnd('/'), config.ApiKey.Trim());
+    }
+
+    /// <summary>
+    /// 中文回复保障：文本以非汉字为主时调用 DSH 翻译成中文；否则原样返回。
+    /// 语音播报前的兜底（提示词已强制中文，此为第二道保险）。
+    /// </summary>
+    public async Task<string> EnsureChineseAsync(string text, CancellationToken cancellationToken = default)
+    {
+        if (!ChineseTextGuard.NeedsTranslation(text)) return text;
+
+        try
+        {
+            Logger.Warn("回复含大量非中文，自动翻译成中文: " + JsonUtils.Truncate(text, 120));
+            var (dshHost, dshKey) = SelectDshEndpoint(_config);
+            var payload = new DSHChatRequest
+            {
+                Model = _config.DSHModel,
+                Temperature = 0.3,
+                MaxTokens = 1000,
+                Messages =
+                [
+                    new() { Role = "system", Content =
+                        "你是翻译。把用户输入翻译成中文（普通话），保持原意与语气，中文表达英文术语；只输出译文，不要任何解释、前缀或 Markdown。" },
+                    new() { Role = "user", Content = text }
+                ]
+            };
+            using var request = new HttpRequestMessage(HttpMethod.Post, dshHost + "/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", dshKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload, RequestOptions), Encoding.UTF8, "application/json");
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode) return text;
+            var chat = JsonSerializer.Deserialize<DSHChatResponse>(responseText, ReadOptions);
+            var translated = chat?.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+            return string.IsNullOrWhiteSpace(translated) ? text : translated;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn("翻译调用异常，使用原文: " + ex.Message);
+            return text;
+        }
     }
 
     public async Task<DSHResponse> ExecuteAsync(string userCommand, CancellationToken cancellationToken = default)

@@ -88,15 +88,6 @@ public partial class SettingsWindow : Window
         TtsModeBox.SelectedValue = _config.TtsMode;
         TtsVoiceBox.Text = _config.TtsVoice;
 
-        ReportLangBox.ItemsSource = new[]
-        {
-            new { Key = "zh", Label = "中文（普通话）" },
-            new { Key = "en", Label = "English（英文）" }
-        };
-        ReportLangBox.DisplayMemberPath = "Label";
-        ReportLangBox.SelectedValuePath = "Key";
-        ReportLangBox.SelectedValue = _config.ReportLanguage;
-
         TtsRateSlider.Value = _config.TtsRate;
         TtsVolumeSlider.Value = _config.TtsVolume;
 
@@ -221,7 +212,6 @@ public partial class SettingsWindow : Window
         _config.MaxUtteranceMs = (int)MaxUtteranceSlider.Value;
         _config.TtsMode = TtsModeBox.SelectedValue?.ToString() ?? "cloud";
         _config.TtsVoice = TtsVoiceBox.Text.Trim();
-        _config.ReportLanguage = ReportLangBox.SelectedValue?.ToString() ?? "zh";
         _config.TtsRate = (int)TtsRateSlider.Value;
         _config.TtsVolume = (int)TtsVolumeSlider.Value;
         _config.WakeMode = WakeModeBox.SelectedValue?.ToString() ?? "local";

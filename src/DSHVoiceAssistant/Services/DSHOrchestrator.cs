@@ -433,6 +433,12 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
                 speak = result.Message.Length > 120 ? result.Message[..120] : result.Message;
             }
 
+            // 中文回复保障：任何回复强制中文（提示词已约束，此处兜底翻译）
+            if (!string.IsNullOrWhiteSpace(speak))
+            {
+                speak = await _dsh.EnsureChineseAsync(speak);
+            }
+
             // 闹钟/提醒：本地定时，到点语音播报（不依赖 DSH）
             if (string.Equals(command.Action, "reminder", StringComparison.OrdinalIgnoreCase))
             {
@@ -482,7 +488,9 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
             {
                 await Task.Delay(delay, cts.Token);
                 Logger.Info("提醒触发: " + message);
-                await _tts.SpeakAsync(message);
+                // 提醒内容同样强制中文
+                var zh = await _dsh.EnsureChineseAsync(message);
+                await _tts.SpeakAsync(zh);
             }
             catch (TaskCanceledException)
             {

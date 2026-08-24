@@ -11,4 +11,7 @@ public interface IDSHCommandService
 {
     /// <summary>执行指令：自然语言 → DSHResponse 结构化指令。</summary>
     Task<DSHResponse> ExecuteAsync(string userCommand, CancellationToken cancellationToken = default);
+
+    /// <summary>中文回复保障：文本以非汉字为主时翻译成中文（语音播报前调用）。</summary>
+    Task<string> EnsureChineseAsync(string text, CancellationToken cancellationToken = default);
 }
