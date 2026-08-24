@@ -15,6 +15,18 @@ public sealed class DSHConfig
     [JsonPropertyName("ApiHost")]
     public string ApiHost { get; set; } = "https://ws-fdenp5x6eqwcud4u.cn-beijing.maas.aliyuncs.com/compatible-mode/v1";
 
+    /// <summary>
+    /// DSH API 密钥（DeepSeek 官方，可选）：指令引擎专用。
+    /// 填写后指令引擎走 DSH API（DshApiHost）；留空则回退使用百炼密钥（ApiKey）。
+    /// 可用环境变量 DEEPSEEK_API_KEY 覆盖。
+    /// </summary>
+    [JsonPropertyName("DshApiKey")]
+    public string DshApiKey { get; set; } = "";
+
+    /// <summary>DSH API 地址（DeepSeek 官方 compatible-mode，不带末尾斜杠）</summary>
+    [JsonPropertyName("DshApiHost")]
+    public string DshApiHost { get; set; } = "https://api.deepseek.com/v1";
+
     /// <summary>语音识别模型（百炼工作台可用的 omni 多模态模型，如 qwen3.5-omni-flash；转写走原生多模态网关）</summary>
     [JsonPropertyName("SpeechModel")]
     public string SpeechModel { get; set; } = "qwen3.5-omni-flash";

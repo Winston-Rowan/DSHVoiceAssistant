@@ -148,6 +148,23 @@ public sealed class DSHCommandService : IDSHCommandService
         _http = new HttpClient { Timeout = TimeSpan.FromSeconds(Math.Max(10, config.ApiTimeoutSeconds)) };
     }
 
+    /// <summary>
+    /// 选择指令引擎端点：填写了 DSH API 密钥 → 走 DSH API（DeepSeek 官方）；
+    /// 否则回退百炼（与语音识别共用密钥）。
+    /// </summary>
+    public static (string Host, string Key) SelectDshEndpoint(DSHConfig config)
+    {
+        var dshKey = config.DshApiKey?.Trim() ?? "";
+        if (dshKey.Length > 0)
+        {
+            var dshHost = string.IsNullOrWhiteSpace(config.DshApiHost)
+                ? "https://api.deepseek.com/v1"
+                : config.DshApiHost.Trim().TrimEnd('/');
+            return (dshHost, dshKey);
+        }
+        return (config.ApiHost.Trim().TrimEnd('/'), config.ApiKey.Trim());
+    }
+
     public async Task<DSHResponse> ExecuteAsync(string userCommand, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userCommand)) return DSHResponse.Failure("指令文本为空");
@@ -162,12 +179,13 @@ public sealed class DSHCommandService : IDSHCommandService
         var body = JsonSerializer.Serialize(payload, RequestOptions);
 
         // 简单重试：网络异常或 5xx 时重试一次
+        var (dshHost, dshKey) = SelectDshEndpoint(_config);
         for (var attempt = 0; attempt < 2; attempt++)
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, _config.ApiHost.TrimEnd('/') + "/chat/completions");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
+                using var request = new HttpRequestMessage(HttpMethod.Post, dshHost + "/chat/completions");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", dshKey);
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);

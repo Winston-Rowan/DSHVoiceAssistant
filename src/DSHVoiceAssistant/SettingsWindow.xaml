@@ -9,19 +9,28 @@
         Background="#F5F7FB">
     <DockPanel Margin="0,0,0,0">
         <TabControl x:Name="SettingsTabs" Margin="12,10,12,0" Padding="8">
-            <!-- ============ 基础配置 ============ -->
-            <TabItem Header="基础配置">
+            <!-- ============ API 配置 ============ -->
+            <TabItem Header="API 配置">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8,12,8,12">
-                        <TextBlock Text="API 密钥（也可用环境变量 DSH_API_KEY 覆盖）" Margin="0,0,0,2" FontSize="12" Foreground="#7A8699" />
+                        <TextBlock Text="百炼 API（语音识别 / 语音合成）" FontWeight="Bold" FontSize="13" Foreground="#55606F" />
+                        <TextBlock Text="API 密钥（也可用环境变量 DSH_API_KEY 覆盖）" Margin="0,8,0,2" FontSize="12" Foreground="#7A8699" />
                         <PasswordBox x:Name="ApiKeyBox" />
                         <TextBlock Text="API 地址" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
                         <TextBox x:Name="ApiHostBox" />
                         <TextBlock Text="语音识别模型" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
                         <TextBox x:Name="SpeechModelBox" />
+
+                        <TextBlock Text="DSH API（指令引擎，DeepSeek 官方）" FontWeight="Bold" FontSize="13" Foreground="#55606F" Margin="0,16,0,0" />
+                        <TextBlock Text="DSH API 密钥（留空则回退使用百炼密钥；也可用环境变量 DEEPSEEK_API_KEY）" Margin="0,8,0,2" FontSize="12" Foreground="#7A8699" TextWrapping="Wrap" />
+                        <PasswordBox x:Name="DshApiKeyBox" />
+                        <TextBlock Text="DSH API 地址" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
+                        <TextBox x:Name="DshApiHostBox" />
                         <TextBlock Text="DSH 指令模型" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
-                        <TextBox x:Name="DSHModelBox" />
-                        <TextBlock Text="搜索引擎（DSH 执行网络搜索时使用）" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
+                        <ComboBox x:Name="DSHModelBox" />
+
+                        <TextBlock Text="其他" FontWeight="Bold" FontSize="13" Foreground="#55606F" Margin="0,16,0,0" />
+                        <TextBlock Text="搜索引擎（DSH 执行网络搜索时使用）" Margin="0,8,0,2" FontSize="12" Foreground="#7A8699" />
                         <ComboBox x:Name="SearchEngineBox" />
                         <TextBlock Text="权限模式（DSH 执行权限，与 DSH 三种模式一致）" Margin="0,10,0,2" FontSize="12" Foreground="#7A8699" />
                         <ComboBox x:Name="PermissionModeBox" />

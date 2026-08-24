@@ -67,6 +67,9 @@ public sealed class ConfigService
     {
         var envKey = Environment.GetEnvironmentVariable("DSH_API_KEY");
         if (!string.IsNullOrWhiteSpace(envKey)) config.ApiKey = envKey;
+
+        var dshEnvKey = Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
+        if (!string.IsNullOrWhiteSpace(dshEnvKey)) config.DshApiKey = dshEnvKey;
         return config;
     }
 }

@@ -31,7 +31,19 @@ public partial class SettingsWindow : Window
         ApiKeyBox.Password = _config.ApiKey;
         ApiHostBox.Text = _config.ApiHost;
         SpeechModelBox.Text = _config.SpeechModel;
-        DSHModelBox.Text = _config.DSHModel;
+
+        DshApiKeyBox.Password = _config.DshApiKey;
+        DshApiHostBox.Text = _config.DshApiHost;
+
+        // DSH 指令模型：下拉选择（DeepSeek 官方 / 百炼工作台常用模型）
+        DSHModelBox.ItemsSource = new[]
+        {
+            "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner", "deepseek-r1",
+            "qwen3-32b", "qwen-plus", "qwen-max"
+        };
+        DSHModelBox.SelectedItem = DSHModelBox.Items.Contains(_config.DSHModel)
+            ? _config.DSHModel
+            : "deepseek-v4-flash";
         WakeWordBox.Text = _config.WakeWord;
         WakeVariantsBox.Text = string.Join(", ", _config.WakeWordVariants);
         NameBox.Text = _config.AssistantName;
@@ -154,7 +166,9 @@ public partial class SettingsWindow : Window
         _config.ApiKey = ApiKeyBox.Password.Trim();
         _config.ApiHost = ApiHostBox.Text.Trim();
         _config.SpeechModel = SpeechModelBox.Text.Trim();
-        _config.DSHModel = DSHModelBox.Text.Trim();
+        _config.DshApiKey = DshApiKeyBox.Password.Trim();
+        _config.DshApiHost = DshApiHostBox.Text.Trim();
+        _config.DSHModel = DSHModelBox.SelectedItem?.ToString() ?? "deepseek-v4-flash";
         _config.WakeWord = WakeWordBox.Text.Trim();
         _config.AssistantName = NameBox.Text.Trim();
 

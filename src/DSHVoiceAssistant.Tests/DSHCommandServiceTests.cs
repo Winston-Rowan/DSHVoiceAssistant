@@ -8,6 +8,35 @@ namespace DSHVoiceAssistant.Tests;
 public class DSHCommandServiceTests
 {
     [Fact]
+    public void SelectDshEndpoint_DshKeySet_UsesDshHostAndKey()
+    {
+        var config = new DSHConfig
+        {
+            ApiKey = "bailian-key",
+            ApiHost = "https://bailian.example.com/v1",
+            DshApiKey = "dsh-key",
+            DshApiHost = "https://api.deepseek.com/v1/"
+        };
+        var (host, key) = DSHCommandService.SelectDshEndpoint(config);
+        Assert.Equal("https://api.deepseek.com/v1", host); // 去除末尾斜杠
+        Assert.Equal("dsh-key", key);
+    }
+
+    [Fact]
+    public void SelectDshEndpoint_DshKeyEmpty_FallsBackToBailian()
+    {
+        var config = new DSHConfig
+        {
+            ApiKey = "bailian-key",
+            ApiHost = "https://bailian.example.com/v1/",
+            DshApiKey = ""
+        };
+        var (host, key) = DSHCommandService.SelectDshEndpoint(config);
+        Assert.Equal("https://bailian.example.com/v1", host);
+        Assert.Equal("bailian-key", key);
+    }
+
+    [Fact]
     public void BuildMessages_NoHistory_SystemPlusUser()
     {
         var messages = DSHCommandService.BuildMessages("系统提示", [], "打开记事本", 6);
