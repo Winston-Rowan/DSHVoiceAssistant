@@ -24,7 +24,7 @@ public static class HotKeyService
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     /// <summary>
-    /// 解析快捷键组合字符串（如 "Ctrl+Alt+D" / "Ctrl+Shift+F1" / "Win+Space"）。
+    /// 解析快捷键组合字符串（如 "Win+F2" / "Ctrl+Alt+D" / "Win+Space"）。
     /// 规则：至少一个修饰键（Ctrl/Alt/Shift/Win）+ 恰好一个主键。
     /// </summary>
     /// <param name="combo">组合字符串（大小写不敏感，'+' 分隔）</param>
@@ -47,7 +47,7 @@ public static class HotKeyService
         var parts = combo.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length < 2)
         {
-            error = "格式应为“修饰键+主键”，如 Ctrl+Alt+D";
+            error = "格式应为“修饰键+主键”，如 Win+F2";
             return false;
         }
 
@@ -158,7 +158,7 @@ public static class HotKeyService
     }
 
     /// <summary>
-    /// 注册全局快捷键（默认 Ctrl+Alt+D）。
+    /// 注册全局快捷键（默认 Win+F2）。
     /// </summary>
     /// <param name="window">宿主窗口（WPF）</param>
     /// <param name="modifiers">修饰键组合（ModAlt | ModControl）</param>

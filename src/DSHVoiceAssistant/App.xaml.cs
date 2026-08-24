@@ -78,7 +78,7 @@ public partial class App : WpfApplication
         _services = services.BuildServiceProvider();
 
         _orchestrator = _services.GetRequiredService<IDSHOrchestrator>();
-        _tray = new TrayIconService();
+        _tray = new TrayIconService(config);
         _orchestrator.StateChanged += (state, _) => _tray.UpdateState(state, _orchestrator.IsMuted);
 
         var viewModel = _services.GetRequiredService<MainViewModel>();

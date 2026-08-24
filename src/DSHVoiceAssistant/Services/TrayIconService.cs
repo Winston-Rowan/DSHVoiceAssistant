@@ -30,7 +30,7 @@ public sealed class TrayIconService : IDisposable
     /// <summary>请求退出应用</summary>
     public event Action? ExitRequested;
 
-    public TrayIconService()
+    public TrayIconService(DSHConfig config)
     {
         _uiContext = SynchronizationContext.Current;
 
@@ -43,7 +43,8 @@ public sealed class TrayIconService : IDisposable
 
         _menu = new ContextMenuStrip();
         _menu.Items.Add("显示主窗口", null, (_, _) => ShowRequested?.Invoke());
-        _menu.Items.Add("立即对话 (Ctrl+Alt+D)", null, (_, _) => ForceActivateRequested?.Invoke());
+        var hotKey = string.IsNullOrWhiteSpace(config.HotKeyCombo) ? "" : " (" + config.HotKeyCombo + ")";
+        _menu.Items.Add("立即对话" + hotKey, null, (_, _) => ForceActivateRequested?.Invoke());
 
         _listenItem = new ToolStripMenuItem("启用监听") { Checked = true };
         _listenItem.Click += (_, _) => ToggleListeningRequested?.Invoke();

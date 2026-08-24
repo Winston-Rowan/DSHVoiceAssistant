@@ -78,11 +78,11 @@ public sealed class DSHConfig
     public bool HotKeyEnabled { get; set; } = true;
 
     /// <summary>
-    /// 全局快捷键组合（格式如 "Ctrl+Alt+D" / "Ctrl+Shift+F1"），
+    /// 全局快捷键组合（格式如 "Win+F2" / "Ctrl+Alt+D"），
     /// 至少包含一个修饰键（Ctrl/Alt/Shift/Win）。
     /// </summary>
     [JsonPropertyName("HotKeyCombo")]
-    public string HotKeyCombo { get; set; } = "Ctrl+Alt+D";
+    public string HotKeyCombo { get; set; } = "Win+F2";
 
     /// <summary>
     /// 自声过滤：播报回复期间忽略麦克风输入（VAD/唤醒检测），

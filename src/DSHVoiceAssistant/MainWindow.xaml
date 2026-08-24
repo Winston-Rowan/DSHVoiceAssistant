@@ -33,7 +33,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,10,0,10">
-                        <TextBlock Text="🎤" FontSize="18" Foreground="White" />
+                        <Image Source="/Assets/DSHWhale.png" Width="18" Height="18" VerticalAlignment="Center" />
                         <TextBlock Text=" DSH 语音助手" FontSize="16" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
                     </StackPanel>
                     <Button Grid.Column="1" Content="⚙" Style="{StaticResource TitleBarButton}" ToolTip="设置" Click="SettingsButton_OnClick" />

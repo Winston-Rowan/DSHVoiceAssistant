@@ -304,7 +304,7 @@ public partial class SettingsWindow : Window
         if (resetToCurrent) HotKeyDisplay.Text = _config.HotKeyCombo;
     }
 
-    /// <summary>把当前按键事件组合为 "Ctrl+Alt+D" 形式的字符串；纯修饰键按下返回 null</summary>
+    /// <summary>把当前按键事件组合为 "Win+F2" 形式的字符串；纯修饰键按下返回 null</summary>
     private static string? BuildComboFromKey(InputKeyEventArgs e)
     {
         var mods = new List<string>();
