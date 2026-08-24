@@ -45,7 +45,7 @@
 
 ## 📺 演示动图
 
-![DSH 语音助手演示](https://raw.githubusercontent.com/Winston-Rowan/DSHVoiceAssistant/main/docs/demo/demo.gif)
+![DSH 语音助手演示](https://raw.githubusercontent.com/Winston-Rowan/DSHVoiceAssistant/main/docs/demo/demo-hd.gif)
 
 > 完整演示流程：唤醒 → 语音执行 → 复杂操作汇报 → 闹钟提醒 → Siri 光效 → 权限拦截。
 > 也可以看 [演示脚本](docs/演示脚本.md) 自己照着演一遍。
