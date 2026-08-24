@@ -43,13 +43,13 @@
 "老梁，打开记事本"、"老梁，搜索深圳天气"、"老梁，5分钟后提醒我喝水"。
 说 **"没事了 / 退下"** 或按 **ESC** 结束对话。
 
-## 📺 演示视频
+## 📺 演示动图
 
-<video src="https://raw.githubusercontent.com/Winston-Rowan/DSHVoiceAssistant/main/docs/demo/demo.mp4" controls style="max-width: 100%;"></video>
+![DSH 语音助手演示](https://raw.githubusercontent.com/Winston-Rowan/DSHVoiceAssistant/main/docs/demo/demo.gif)
 
 > 完整演示流程：唤醒 → 语音执行 → 复杂操作汇报 → 闹钟提醒 → Siri 光效 → 权限拦截。
 > 也可以看 [演示脚本](docs/演示脚本.md) 自己照着演一遍。
-> 视频无法播放？[点这里直接下载观看](https://github.com/Winston-Rowan/DSHVoiceAssistant/raw/main/docs/demo/demo.mp4)。
+> 想看完整 3 分 45 秒视频：[点这里下载](https://raw.githubusercontent.com/Winston-Rowan/DSHVoiceAssistant/main/docs/demo/demo.mp4)。
 
 ## ✨ 亮点
 
