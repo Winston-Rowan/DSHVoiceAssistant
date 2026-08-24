@@ -45,7 +45,7 @@
 
 ## 📺 演示视频
 
-<video src="./docs/demo/演示视频.mp4" controls style="max-width: 100%;"></video>
+<video src="https://github.com/Winston-Rowan/DSHVoiceAssistant/raw/main/docs/demo/演示视频.mp4" controls style="max-width: 100%;"></video>
 
 > 完整演示流程：唤醒 → 语音执行 → 复杂操作汇报 → 闹钟提醒 → Siri 光效 → 权限拦截。
 > 也可以看 [演示脚本](docs/演示脚本.md) 自己照着演一遍。
