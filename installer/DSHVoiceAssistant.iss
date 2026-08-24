@@ -10,6 +10,7 @@ AppPublisherURL=https://github.com/Winston-Rowan/DSHVoiceAssistant
 DefaultDirName={autopf}\DSH 语音助手
 DefaultGroupName=DSH 语音助手
 UninstallDisplayIcon={app}\DSHVoiceAssistant.exe
+SetupIconFile=..\src\DSHVoiceAssistant\Assets\DSHWhale.ico
 OutputDir=..\release
 OutputBaseFilename=DSHVoiceAssistant-Setup-1.0.0
 Compression=lzma2
@@ -21,7 +22,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+; 使用内置英文向导（自定义弹窗均为中文，不依赖第三方语言文件）
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 ; 安装包内容（release-stage 已剔除用户配置/日志，首次运行自动生成默认配置）
@@ -66,7 +68,8 @@ begin
   end;
 end;
 
-{ 在本机 DSH 更新缓存中查找官方安装包（updates\<版本>\DSH-Desktop-*-windows.exe） }
+{ 在本机 DSH 更新缓存中查找官方安装包（updates\<版本>\DSH-Desktop-*-windows.exe）
+  Inno 6.7+ 的 FindFirst 为双参数签名（FileName, var FindRec） }
 function FindCachedDSHInstaller(): String;
 var
   Base, SubDir, Pattern: String;
@@ -76,15 +79,16 @@ begin
   Base := ExpandConstant('{userappdata}\DSH Desktop\updates');
   if not DirExists(Base) then Exit;
 
-  if FindFirst(Base + '\*', FindRecAnyFile, DirRec) then
+  if FindFirst(Base + '\*', DirRec) then
   begin
     repeat
-      if (DirRec.Attributes and faDirectory <> 0) then
+      if (DirRec.Attributes and $10) <> 0 then // FILE_ATTRIBUTE_DIRECTORY
       begin
-        Pattern := Base + '\' + DirRec.Name + '\DSH-Desktop-*-windows.exe';
-        if FindFirst(Pattern, FindRecAnyFile, FileRec) then
+        SubDir := Base + '\' + DirRec.Name;
+        Pattern := SubDir + '\DSH-Desktop-*-windows.exe';
+        if FindFirst(Pattern, FileRec) then
         begin
-          Result := Base + '\' + DirRec.Name + '\' + FileRec.Name;
+          Result := SubDir + '\' + FileRec.Name;
           FindClose(FileRec);
           Break;
         end;
