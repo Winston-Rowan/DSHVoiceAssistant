@@ -20,12 +20,13 @@ public sealed class DSHCommandService : IDSHCommandService
     /// {NAME} 运行时替换为助手身份（配置 AssistantName，如"梁文峰"）；
     /// {WAKE_WORD} 替换为唤醒词（如"老梁"）；{GIT_PATH} 替换为项目目录；
     /// {PERMISSION} 按 PermissionMode（full/workspace/readonly）注入权限说明；
-    /// {REPORT_LANG} 按 ReportLanguage 注入强制汇报语言。
+    /// {REPORT_LANG} 按 ReportLanguage 注入强制汇报语言；
+    /// {PERSONA} 按 AssistantPersona 注入人格（默认梁文峰，自定义时经 DSH 优化）。
     /// </summary>
     private const string SystemPromptTemplate = """
 你是{NAME}，Windows 桌面语音助手执行引擎。用户用唤醒词"{WAKE_WORD}"呼叫你。你的任务：把用户指令转换为可执行 JSON。
 
-【人格】你就是真正的{NAME}——DeepSeek 创始人，广东湛江人，浙江大学电子信息工程毕业，先后创立幻方量化与深度求索。性格：低调沉稳、务实直接、典型技术思维；不吹嘘、不客套、不端架子；说话简洁有力、一针见血，偶尔带一点理工男的冷幽默；关注本质与长期价值，反感炒作。所有 response 的措辞都保持这一人格（被问"你是谁"时答"我叫梁文峰，DeepSeek 创始人，现在兼职当你的桌面助手"）。
+【人格】{PERSONA}
 
 {PERMISSION}
 
@@ -93,7 +94,7 @@ public sealed class DSHCommandService : IDSHCommandService
     }
 
     /// <summary>按当前配置构建系统提示词：身份（AssistantName）与被呼叫方式（唤醒词）分离</summary>
-    private string BuildSystemPrompt()
+    private string BuildSystemPrompt(string persona)
     {
         var name = string.IsNullOrWhiteSpace(_config.AssistantName)
             ? (string.IsNullOrWhiteSpace(_config.WakeWord) ? "DSH 语音助手" : _config.WakeWord.Trim())
@@ -110,7 +111,89 @@ public sealed class DSHCommandService : IDSHCommandService
             .Replace("{WAKE_WORD}", wakeWord)
             .Replace("{GIT_PATH}", gitPath)
             .Replace("{PERMISSION}", BuildPermissionSection())
-            .Replace("{REPORT_LANG}", reportLang);
+            .Replace("{REPORT_LANG}", reportLang)
+            .Replace("{PERSONA}", persona);
+    }
+
+    // ---------- 人格：默认梁文峰，自定义时由 DSH 优化后注入 ----------
+
+    private readonly object _personaLock = new();
+    private string? _effectivePersona;
+    private string? _personaSource;
+
+    /// <summary>
+    /// 获取生效人格：空白/等于默认 → 直接用默认人格；自定义 → 调用 DSH 优化一次并缓存
+    /// （源文本未变化则不重复调用）。失败时回退用户原文。
+    /// </summary>
+    private async Task<string> GetEffectivePersonaAsync(CancellationToken cancellationToken)
+    {
+        var raw = string.IsNullOrWhiteSpace(_config.AssistantPersona)
+            ? DSHConfig.DefaultPersona
+            : _config.AssistantPersona.Trim();
+
+        lock (_personaLock)
+        {
+            if (_effectivePersona != null && _personaSource == raw) return _effectivePersona;
+        }
+
+        string? optimized = null;
+        // 默认人格本身已是精修版本，无需优化
+        if (!string.Equals(raw, DSHConfig.DefaultPersona, StringComparison.Ordinal))
+        {
+            optimized = await OptimizePersonaAsync(raw, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(optimized))
+            {
+                Logger.Info("人格已由 DSH 优化后注入");
+            }
+            else
+            {
+                Logger.Warn("人格优化失败，回退用户原文");
+            }
+        }
+
+        var effective = optimized ?? raw;
+        lock (_personaLock)
+        {
+            _effectivePersona = effective;
+            _personaSource = raw;
+        }
+        return effective;
+    }
+
+    /// <summary>调用 DSH 优化人格描述：保留核心人设，语言精炼可执行，直接输出结果</summary>
+    private async Task<string?> OptimizePersonaAsync(string persona, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (dshHost, dshKey) = SelectDshEndpoint(_config);
+            var payload = new DSHChatRequest
+            {
+                Model = _config.DSHModel,
+                Temperature = 0.7,
+                MaxTokens = 500,
+                Messages =
+                [
+                    new() { Role = "system", Content =
+                        "你是人格描述优化器。把用户写的人格描述优化成适合注入语音助手系统提示词的版本：" +
+                        "保留核心人设与性格，语言精炼、具体、可执行，120 字以内，用中文直接输出优化结果，不要任何解释、前缀或 Markdown。" },
+                    new() { Role = "user", Content = persona }
+                ]
+            };
+            using var request = new HttpRequestMessage(HttpMethod.Post, dshHost + "/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", dshKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload, RequestOptions), Encoding.UTF8, "application/json");
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+            var chat = JsonSerializer.Deserialize<DSHChatResponse>(responseText, ReadOptions);
+            var content = chat?.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+            return string.IsNullOrWhiteSpace(content) ? null : content;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn("人格优化调用异常: " + ex.Message);
+            return null;
+        }
     }
 
     private static readonly JsonSerializerOptions RequestOptions = new();
@@ -150,12 +233,13 @@ public sealed class DSHCommandService : IDSHCommandService
     {
         if (string.IsNullOrWhiteSpace(userCommand)) return DSHResponse.Failure("指令文本为空");
 
+        var persona = await GetEffectivePersonaAsync(cancellationToken);
         var payload = new DSHChatRequest
         {
             Model = _config.DSHModel,
             Temperature = 0.3,
             MaxTokens = 4000, // 推理模型需要留足思考+输出空间（曾出现思考耗尽导致空回复）
-            Messages = BuildMessages(BuildSystemPrompt(), _history, userCommand, _config.DshHistoryRounds)
+            Messages = BuildMessages(BuildSystemPrompt(persona), _history, userCommand, _config.DshHistoryRounds)
         };
         var body = JsonSerializer.Serialize(payload, RequestOptions);
 

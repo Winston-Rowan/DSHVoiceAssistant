@@ -159,6 +159,17 @@ public partial class SettingsWindow : Window
 
         TrayCheck.IsChecked = _config.MinimizeToTray;
         AutoStartCheck.IsChecked = AutoStartHelper.IsRegistered();
+
+        // 助手人格（默认梁文峰；空=默认）
+        PersonaBox.Text = string.IsNullOrWhiteSpace(_config.AssistantPersona)
+            ? DSHConfig.DefaultPersona
+            : _config.AssistantPersona;
+    }
+
+    private void RestoreDefaultPersona_OnClick(object sender, RoutedEventArgs e)
+    {
+        PersonaBox.Text = DSHConfig.DefaultPersona;
+        ApplyStatus.Text = "已恢复为默认梁文峰人格，点击「应用」或「保存」生效";
     }
 
     /// <summary>应用按钮：保存设置（窗口保持打开），状态栏提示；部分设置需重启生效</summary>
@@ -187,6 +198,9 @@ public partial class SettingsWindow : Window
         _config.DSHModel = DSHModelBox.SelectedItem?.ToString() ?? "deepseek-v4-flash";
         _config.WakeWord = WakeWordBox.Text.Trim();
         _config.AssistantName = NameBox.Text.Trim();
+        _config.AssistantPersona = string.Equals(PersonaBox.Text.Trim(), DSHConfig.DefaultPersona, StringComparison.Ordinal)
+            ? ""
+            : PersonaBox.Text.Trim();
 
         // 唤醒词变体：逗号/顿号/空格分隔；留空则按主词自动生成
         var variantText = (WakeVariantsBox.Text ?? "").Trim();

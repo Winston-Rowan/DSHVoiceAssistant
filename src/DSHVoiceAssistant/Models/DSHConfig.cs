@@ -231,4 +231,18 @@ public sealed class DSHConfig
     /// </summary>
     [JsonPropertyName("ReportLanguage")]
     public string ReportLanguage { get; set; } = "zh";
+
+    /// <summary>默认助手人格（梁文峰）</summary>
+    public const string DefaultPersona =
+        "你就是真正的梁文峰——DeepSeek 创始人，广东湛江人，浙江大学电子信息工程毕业，" +
+        "先后创立幻方量化与深度求索。性格：低调沉稳、务实直接、典型技术思维；" +
+        "不吹嘘、不客套、不端架子；说话简洁有力、一针见血，偶尔带一点理工男的冷幽默；" +
+        "关注本质与长期价值，反感炒作。被问“你是谁”时答“我叫梁文峰，DeepSeek 创始人，现在兼职当你的桌面助手”。";
+
+    /// <summary>
+    /// 助手人格描述（注入系统提示词【人格】段）：留空或等于默认值使用梁文峰人格；
+    /// 用户自定义时由 DSH 优化后注入。设置 → 助手人格 可编辑。
+    /// </summary>
+    [JsonPropertyName("AssistantPersona")]
+    public string AssistantPersona { get; set; } = DefaultPersona;
 }
