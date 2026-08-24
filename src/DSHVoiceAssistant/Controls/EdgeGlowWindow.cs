@@ -14,12 +14,13 @@ namespace DSHVoiceAssistant.Controls;
 
 /// <summary>
 /// 边缘光晕可见性判定（纯函数，便于单元测试）。
-/// 规则：开关开启 && 主窗口不可见 && 处于忙碌状态（倾听/识别/思考/执行/播报）时显示。
+/// 规则：开关开启 && 处于忙碌状态（倾听/识别/思考/执行/播报）时显示——
+/// 无论主窗口是否打开（打开时同样环绕屏幕展示）。
 /// </summary>
 public static class EdgeGlowVisibility
 {
     public static bool ShouldShow(bool enabled, bool mainWindowVisible, DSHState state) =>
-        enabled && !mainWindowVisible &&
+        enabled &&
         state is DSHState.Recording or DSHState.Transcribing or DSHState.Thinking
             or DSHState.Executing or DSHState.Speaking;
 }

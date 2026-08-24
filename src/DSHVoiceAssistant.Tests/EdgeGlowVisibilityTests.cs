@@ -31,9 +31,13 @@ public class EdgeGlowVisibilityTests
     [InlineData(DSHState.Idle)]
     [InlineData(DSHState.Recording)]
     [InlineData(DSHState.Speaking)]
-    public void ShouldShow_WhenWindowVisible_ReturnsFalse(DSHState state)
+    public void ShouldShow_WhenWindowVisible_StillShowsWhenBusy(DSHState state)
     {
-        Assert.False(EdgeGlowVisibility.ShouldShow(true, true, state));
+        // 窗口打开时同样展示光效（只受忙碌状态约束）
+        Assert.Equal(
+            state is DSHState.Recording or DSHState.Transcribing or DSHState.Thinking
+                or DSHState.Executing or DSHState.Speaking,
+            EdgeGlowVisibility.ShouldShow(true, true, state));
     }
 
     [Theory]

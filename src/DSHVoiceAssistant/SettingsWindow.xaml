@@ -133,7 +133,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8,12,8,12">
                         <CheckBox x:Name="SelfVoiceFilterCheck" Content="播报回复时忽略麦克风（防止自己的声音误触打断）" Margin="0,0,0,6" FontSize="12" />
-                        <CheckBox x:Name="EdgeGlowCheck" Content="静默运行被唤起时显示屏幕边缘光效（Siri 风格）" Margin="0,6,0,6" FontSize="12" />
+                        <CheckBox x:Name="EdgeGlowCheck" Content="被唤起时显示屏幕边缘光效（Siri 风格，窗口开关都显示）" Margin="0,6,0,6" FontSize="12" />
 
                         <TextBlock Text="对话浮层（窗口隐藏时桌面中下部透明显示对话）" FontWeight="Bold" FontSize="13" Foreground="#55606F" Margin="0,12,0,0" />
                         <CheckBox x:Name="OverlayCheck" Content="启用对话浮层" Margin="0,8,0,0" FontSize="12" />
