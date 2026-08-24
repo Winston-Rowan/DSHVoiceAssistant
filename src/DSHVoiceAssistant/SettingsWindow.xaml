@@ -8,6 +8,16 @@
         FontFamily="Microsoft YaHei UI"
         Background="#F5F7FB">
     <DockPanel Margin="0,0,0,0">
+        <!-- 底部按钮栏：先声明 → 占满底部整行；TabControl 最后声明 → 自动填充剩余空间 -->
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,14">
+            <TextBlock x:Name="ApplyStatus" HorizontalAlignment="Center" FontSize="11" Foreground="#2E9E5B" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                <Button Content="取消" Width="90" Margin="0,0,10,0" Click="CancelButton_OnClick" />
+                <Button Content="应用" Width="90" Margin="0,0,10,0" Click="ApplyButton_OnClick" />
+                <Button Content="保存" Width="90" Background="#3B6FF5" Foreground="White" Click="SaveButton_OnClick" />
+            </StackPanel>
+        </StackPanel>
+
         <TabControl x:Name="SettingsTabs" Margin="12,10,12,0" Padding="8">
             <!-- ============ API 配置 ============ -->
             <TabItem Header="API 配置">
@@ -187,14 +197,5 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
-
-        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,14">
-            <TextBlock x:Name="ApplyStatus" HorizontalAlignment="Center" FontSize="11" Foreground="#2E9E5B" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                <Button Content="取消" Width="90" Margin="0,0,10,0" Click="CancelButton_OnClick" />
-                <Button Content="应用" Width="90" Margin="0,0,10,0" Click="ApplyButton_OnClick" />
-                <Button Content="保存" Width="90" Background="#3B6FF5" Foreground="White" Click="SaveButton_OnClick" />
-            </StackPanel>
-        </StackPanel>
     </DockPanel>
 </Window>
