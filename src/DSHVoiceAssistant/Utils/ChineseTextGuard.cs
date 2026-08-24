@@ -27,7 +27,8 @@ public static class ChineseTextGuard
         }
 
         if (hanzi + foreign == 0) return false;
-        return foreign / (double)(hanzi + foreign) > 0.3; // 非汉字字母占比 > 30% → 翻译
+        // 非汉字字母 ≥5 个且占比 >30% 才翻译（避免 "D盘剩余空间：30.5 GB" 这类少量英文术语被误判）
+        return foreign >= 5 && foreign / (double)(hanzi + foreign) > 0.3;
     }
 
     /// <summary>检测文本中是否含日文假名（调试/诊断用）</summary>
