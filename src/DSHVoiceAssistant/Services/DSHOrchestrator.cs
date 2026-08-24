@@ -88,7 +88,9 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
             StartFrames = _config.VadStartFrames,
             EndSilence = TimeSpan.FromMilliseconds(_config.SilenceTimeoutMs),
             MinSpeech = TimeSpan.FromMilliseconds(_config.MinUtteranceMs),
-            MaxSpeech = TimeSpan.FromMilliseconds(_config.MaxUtteranceMs)
+            MaxSpeech = TimeSpan.FromMilliseconds(_config.MaxUtteranceMs),
+            // 自适应底噪：低增益麦克风也能可靠触发（阈值 = max(用户阈值, 底噪×4)）
+            NoiseFloorProvider = () => _audio.CurrentNoiseFloor
         });
 
         _audio.LevelChanged += OnLevelChanged;
@@ -147,15 +149,28 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         bool activated;
         lock (_gate)
         {
-            activated = State == DSHState.Idle;
-            if (activated)
+            if (State == DSHState.Speaking)
             {
+                // 快捷键打断播报并接管倾听（键盘打断不受自声过滤影响）
+                Logger.Info("快捷键打断播报并开始倾听");
+                _tts.Stop();
                 State = DSHState.Recording;
-                // 若用户正在说话（如刚说完唤醒词），直接接管当前片段
-                if (_vad?.IsInSpeech == true)
+                _collecting = true;
+                StartMaxUtteranceTimer();
+                activated = true;
+            }
+            else
+            {
+                activated = State is DSHState.Idle or DSHState.WakeChecking;
+                if (activated)
                 {
-                    _collecting = true;
-                    StartMaxUtteranceTimer();
+                    State = DSHState.Recording;
+                    // 若用户正在说话（如刚说完唤醒词），直接接管当前片段
+                    if (_vad?.IsInSpeech == true)
+                    {
+                        _collecting = true;
+                        StartMaxUtteranceTimer();
+                    }
                 }
             }
         }
@@ -204,6 +219,9 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     private void OnLevelChanged(float level)
     {
         LevelChanged?.Invoke(level);
+        // 自声过滤：播报回复期间不喂 VAD，扬声器回声不可能被误判为用户说话
+        // （开启过滤时播报中语音插嘴失效，可用快捷键打断；关闭则保持插嘴行为）
+        if (_config.SelfVoiceFilter && _tts.IsSpeaking) return;
         _vad?.Feed(level);
     }
 
@@ -362,6 +380,8 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     {
         try
         {
+            // 进入播报前复位 VAD，清掉播报前残留的"说话中"状态
+            _vad?.Reset();
             await _tts.SpeakAsync(speak);
         }
         catch (Exception ex)
@@ -370,6 +390,8 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         }
         if (State == DSHState.Speaking)
         {
+            // 播报结束复位 VAD：丢弃回声可能留下的 VAD 内部状态，防止误判
+            _vad?.Reset();
             ContinueListening();
         }
     }

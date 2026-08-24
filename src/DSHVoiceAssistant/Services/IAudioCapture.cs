@@ -6,6 +6,9 @@ public interface IAudioCapture
     /// <summary>是否正在采集</summary>
     bool IsCapturing { get; }
 
+    /// <summary>实时噪声底噪估计（归一化 RMS，自适应；VAD/唤醒门控用于兜底阈值）</summary>
+    double CurrentNoiseFloor { get; }
+
     /// <summary>当前使用的麦克风设备编号（可在设置中修改）</summary>
     int DeviceNumber { get; set; }
 

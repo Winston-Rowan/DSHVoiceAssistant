@@ -1,24 +1,28 @@
 using System.Windows;
+using System.Windows.Input;
 using DSHVoiceAssistant.Config;
 using DSHVoiceAssistant.Models;
 using DSHVoiceAssistant.Services;
 using DSHVoiceAssistant.Utils;
 using WpfMessageBox = System.Windows.MessageBox;
+using InputKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace DSHVoiceAssistant;
 
 /// <summary>
 /// 设置窗口：读写 DSHConfig 并保存到 appsettings.json。
-/// 说明：麦克风设备、模型名等改动需要重启应用后生效。
+/// 说明：麦克风设备、模型名等改动需要重启应用后生效；快捷键改动保存后立即生效。
 /// </summary>
 public partial class SettingsWindow : Window
 {
     private readonly DSHConfig _config;
+    private bool _capturingHotKey;
 
     public SettingsWindow(DSHConfig config)
     {
         InitializeComponent();
         _config = config;
+        PreviewKeyDown += OnPreviewKeyDown;
         LoadValues();
     }
 
@@ -47,6 +51,8 @@ public partial class SettingsWindow : Window
         }
 
         VadSlider.Value = _config.VadThreshold;
+        MicGainSlider.Value = Math.Clamp(_config.MicGain, 1, 8);
+        MicGainValue.Text = MicGainSlider.Value.ToString("0.0") + "x";
         SilenceSlider.Value = _config.SilenceTimeoutMs;
         MaxUtteranceSlider.Value = _config.MaxUtteranceMs;
         TtsModeBox.ItemsSource = new[]
@@ -85,6 +91,9 @@ public partial class SettingsWindow : Window
         }
 
         HotKeyCheck.IsChecked = _config.HotKeyEnabled;
+        HotKeyDisplay.Text = _config.HotKeyCombo;
+        SelfVoiceFilterCheck.IsChecked = _config.SelfVoiceFilter;
+        EdgeGlowCheck.IsChecked = _config.EdgeGlowEnabled;
         TrayCheck.IsChecked = _config.MinimizeToTray;
         AutoStartCheck.IsChecked = AutoStartHelper.IsRegistered();
     }
@@ -109,6 +118,7 @@ public partial class SettingsWindow : Window
             : WakeWordMatcher.BuildDefaultVariants(_config.WakeWord);
         _config.SearchEngine = SearchEngineBox.SelectedItem?.ToString() ?? "baidu";
         _config.MicDeviceNumber = MicBox.SelectedIndex >= 0 ? MicBox.SelectedIndex : 0;
+        _config.MicGain = MicGainSlider.Value;
         _config.VadThreshold = VadSlider.Value;
         _config.SilenceTimeoutMs = (int)SilenceSlider.Value;
         _config.MaxUtteranceMs = (int)MaxUtteranceSlider.Value;
@@ -118,6 +128,16 @@ public partial class SettingsWindow : Window
         _config.TtsVolume = (int)TtsVolumeSlider.Value;
         _config.WakeMode = WakeModeBox.SelectedValue?.ToString() ?? "local";
         _config.HotKeyEnabled = HotKeyCheck.IsChecked == true;
+        var combo = HotKeyDisplay.Text.Trim();
+        if (!HotKeyService.TryParse(combo, out _, out _, out var comboError))
+        {
+            WpfMessageBox.Show("快捷键无效：" + comboError + "\n已保留原快捷键。",
+                "DSH", MessageBoxButton.OK, MessageBoxImage.Warning);
+            combo = _config.HotKeyCombo;
+        }
+        _config.HotKeyCombo = combo;
+        _config.SelfVoiceFilter = SelfVoiceFilterCheck.IsChecked == true;
+        _config.EdgeGlowEnabled = EdgeGlowCheck.IsChecked == true;
         _config.MinimizeToTray = TrayCheck.IsChecked == true;
         _config.ConversationTimeoutSeconds = (int)ConvTimeoutSlider.Value;
 
@@ -163,6 +183,9 @@ public partial class SettingsWindow : Window
     private void VadSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => VadValue.Text = VadSlider.Value.ToString("0.000");
 
+    private void MicGainSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => MicGainValue.Text = MicGainSlider.Value.ToString("0.0") + "x";
+
     private void SilenceSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => SilenceValue.Text = ((int)SilenceSlider.Value) + "ms";
 
@@ -179,4 +202,99 @@ public partial class SettingsWindow : Window
         => ConvTimeoutValue.Text = ConvTimeoutSlider.Value <= 0
             ? "关闭"
             : ((int)ConvTimeoutSlider.Value) + "s";
+
+    // ---------- 快捷键捕获 ----------
+
+    private void HotKeyCaptureButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        _capturingHotKey = true;
+        HotKeyCaptureButton.Content = "按下组合键…（Esc 取消）";
+        HotKeyDisplay.Text = "";
+        HotKeyCaptureButton.Focus();
+    }
+
+    private void OnPreviewKeyDown(object sender, InputKeyEventArgs e)
+    {
+        if (!_capturingHotKey) return;
+
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            EndCapture(resetToCurrent: true);
+            return;
+        }
+
+        var combo = BuildComboFromKey(e);
+        if (combo == null) return; // 只按了修饰键，继续等待
+
+        if (!HotKeyService.TryParse(combo, out _, out _, out var error))
+        {
+            HotKeyDisplay.Text = error; // 提示原因，保持捕获状态继续等待
+            return;
+        }
+
+        e.Handled = true;
+        HotKeyDisplay.Text = combo;
+        EndCapture(resetToCurrent: false);
+    }
+
+    private void EndCapture(bool resetToCurrent)
+    {
+        _capturingHotKey = false;
+        HotKeyCaptureButton.Content = "点击后按下新组合键…";
+        if (resetToCurrent) HotKeyDisplay.Text = _config.HotKeyCombo;
+    }
+
+    /// <summary>把当前按键事件组合为 "Ctrl+Alt+D" 形式的字符串；纯修饰键按下返回 null</summary>
+    private static string? BuildComboFromKey(InputKeyEventArgs e)
+    {
+        var mods = new List<string>();
+        var m = Keyboard.Modifiers;
+        if (m.HasFlag(ModifierKeys.Control)) mods.Add("Ctrl");
+        if (m.HasFlag(ModifierKeys.Alt)) mods.Add("Alt");
+        if (m.HasFlag(ModifierKeys.Shift)) mods.Add("Shift");
+        if (m.HasFlag(ModifierKeys.Windows)) mods.Add("Win");
+
+        var main = KeyToToken(e.Key);
+        if (main == null) return null;
+        return string.Join("+", mods.Append(main));
+    }
+
+    /// <summary>WPF 按键 → 快捷键名称（与 HotKeyService.TryParse 的词表对应）</summary>
+    private static string? KeyToToken(Key key)
+    {
+        if (key >= Key.A && key <= Key.Z) return key.ToString();
+        if (key >= Key.D0 && key <= Key.D9) return ((char)('0' + (key - Key.D0))).ToString();
+        if (key >= Key.NumPad0 && key <= Key.NumPad9) return ((char)('0' + (key - Key.NumPad0))).ToString();
+        if (key >= Key.F1 && key <= Key.F12) return key.ToString();
+        return key switch
+        {
+            Key.Space => "Space",
+            Key.Enter => "Enter",
+            Key.Tab => "Tab",
+            Key.Back => "Back",
+            Key.Delete => "Del",
+            Key.Insert => "Ins",
+            Key.Up => "Up",
+            Key.Down => "Down",
+            Key.Left => "Left",
+            Key.Right => "Right",
+            Key.Home => "Home",
+            Key.End => "End",
+            Key.PageUp => "PgUp",
+            Key.PageDown => "PgDn",
+            Key.OemMinus => "-",
+            Key.OemPlus => "=",
+            Key.OemOpenBrackets => "[",
+            Key.OemCloseBrackets => "]",
+            Key.OemBackslash => "\\",
+            Key.OemSemicolon => ";",
+            Key.OemQuotes => "'",
+            Key.OemComma => ",",
+            Key.OemPeriod => ".",
+            Key.OemQuestion => "/",
+            Key.OemTilde => "`",
+            _ => null
+        };
+    }
 }

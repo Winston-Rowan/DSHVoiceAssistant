@@ -30,7 +30,27 @@ public sealed class WakeWordService : IWakeWordDetection, IDisposable
 
     public event EventHandler? WakeWordDetected;
 
-    public bool IsEnabled { get; set; } = true;
+    private bool _isEnabled = true;
+
+    /// <summary>
+    /// 是否启用识别。重新启用（false→true）时清空音频缓存并复位 VAD，
+    /// 丢弃播报回复期间积累的扬声器回声，防止回声残留被误识别为唤醒词。
+    /// </summary>
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value) return;
+            _isEnabled = value;
+            if (value)
+            {
+                lock (_gate) _chunks.Clear();
+                _vad?.Reset();
+                Logger.Info("云端唤醒服务重新启用，已清空回声缓存");
+            }
+        }
+    }
 
     public void Start()
     {
@@ -69,7 +89,11 @@ public sealed class WakeWordService : IWakeWordDetection, IDisposable
         Logger.Info("唤醒词检测已停止");
     }
 
-    private void OnLevelChanged(float level) => _vad?.Feed(level);
+    private void OnLevelChanged(float level)
+    {
+        if (!IsEnabled) return; // 禁用期间不喂 VAD，防止播报回声污染检测状态
+        _vad?.Feed(level);
+    }
 
     private void OnDataAvailable(byte[] data)
     {

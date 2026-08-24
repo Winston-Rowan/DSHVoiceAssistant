@@ -17,6 +17,12 @@ public sealed class VADSettings
 
     /// <summary>一句话最长时长，超时强制结束</summary>
     public TimeSpan MaxSpeech { get; set; } = TimeSpan.FromMilliseconds(15000);
+
+    /// <summary>
+    /// 噪声底噪提供者（音频采集服务的实时底噪估计）。
+    /// 提供后判定阈值 = max(StartThreshold, 底噪×4)：低增益麦克风/环境噪声都能自适应。
+    /// </summary>
+    public Func<double>? NoiseFloorProvider { get; set; }
 }
 
 /// <summary>
@@ -49,7 +55,15 @@ public sealed class VoiceActivityDetector
     public void Feed(float rms)
     {
         var now = DateTime.UtcNow;
-        var voiced = rms >= _settings.StartThreshold;
+
+        // 自适应阈值：不低于用户阈值，也不低于 4 倍实时底噪（低增益麦克风兜底）
+        var threshold = _settings.StartThreshold;
+        if (_settings.NoiseFloorProvider != null)
+        {
+            var floor = _settings.NoiseFloorProvider();
+            if (floor > 0) threshold = Math.Max(threshold, floor * 4);
+        }
+        var voiced = rms >= threshold;
 
         if (!_inSpeech)
         {

@@ -45,7 +45,30 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
 
     public event EventHandler? WakeWordDetected;
 
-    public bool IsEnabled { get; set; } = true;
+    private bool _isEnabled = true;
+
+    /// <summary>
+    /// 是否启用识别。重新启用（false→true）时清空滑动窗口缓存，
+    /// 丢弃播报回复期间积累的扬声器回声，防止回声残留被误识别为唤醒词。
+    /// </summary>
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value) return;
+            _isEnabled = value;
+            if (value)
+            {
+                lock (_gate)
+                {
+                    _chunks.Clear();
+                    _chunkBytes = 0;
+                }
+                Logger.Info("本地唤醒服务重新启用，已清空回声缓存窗口");
+            }
+        }
+    }
 
     public void Start()
     {
@@ -170,7 +193,9 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
             avgRms /= Math.Max(1, snapshot.Count);
         }
 
-        if (avgRms < Math.Max(0.006, _config.VadThreshold * 0.5)) return;
+        // RMS 门控：窗口内几乎没有声音就跳过（省 CPU）。
+        // 阈值取用户阈值与实时底噪的较高者：低增益麦克风/环境噪声自适应。
+        if (avgRms < Math.Max(0.006, Math.Max(_config.VadThreshold * 0.5, _audio.CurrentNoiseFloor * 2))) return;
         if (!IsEnabled) return;
 
         try

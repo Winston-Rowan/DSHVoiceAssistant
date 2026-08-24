@@ -48,9 +48,31 @@ public sealed class DSHConfig
     [JsonPropertyName("WakeMode")]
     public string WakeMode { get; set; } = "local";
 
-    /// <summary>是否启用快捷键 Ctrl+Alt+D 唤醒</summary>
+    /// <summary>是否启用全局快捷键唤醒/倾听</summary>
     [JsonPropertyName("HotKeyEnabled")]
     public bool HotKeyEnabled { get; set; } = true;
+
+    /// <summary>
+    /// 全局快捷键组合（格式如 "Ctrl+Alt+D" / "Ctrl+Shift+F1"），
+    /// 至少包含一个修饰键（Ctrl/Alt/Shift/Win）。
+    /// </summary>
+    [JsonPropertyName("HotKeyCombo")]
+    public string HotKeyCombo { get; set; } = "Ctrl+Alt+D";
+
+    /// <summary>
+    /// 自声过滤：播报回复期间忽略麦克风输入（VAD/唤醒检测），
+    /// 防止自己的语音被扬声器→麦克风回路误触发（如打断自己的播报）。
+    /// 开启时播报期间无法语音插嘴（可用快捷键打断）；关闭则保留语音插嘴行为。
+    /// </summary>
+    [JsonPropertyName("SelfVoiceFilter")]
+    public bool SelfVoiceFilter { get; set; } = true;
+
+    /// <summary>
+    /// 麦克风数字增益（1.0 ~ 8.0，默认 3.0）：低增益麦克风适配，
+    /// 在采集源头统一放大 PCM，VAD/唤醒/识别全部受益；1.0 = 不增益。
+    /// </summary>
+    [JsonPropertyName("MicGain")]
+    public double MicGain { get; set; } = 3.0;
 
     /// <summary>麦克风设备编号（0 为系统默认）</summary>
     [JsonPropertyName("MicDeviceNumber")]
@@ -132,4 +154,12 @@ public sealed class DSHConfig
     /// <summary>点击关闭按钮时最小化到系统托盘</summary>
     [JsonPropertyName("MinimizeToTray")]
     public bool MinimizeToTray { get; set; } = true;
+
+    /// <summary>
+    /// 屏幕边缘光晕（Siri 风格）：静默运行（主窗口隐藏）时被唤起，
+    /// 在主屏幕最外圈显示彩色流光动效，随倾听/处理/播报状态变化节奏；
+    /// 回到待命或打开主窗口时消失。
+    /// </summary>
+    [JsonPropertyName("EdgeGlowEnabled")]
+    public bool EdgeGlowEnabled { get; set; } = true;
 }

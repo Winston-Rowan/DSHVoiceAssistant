@@ -24,6 +24,31 @@ public static class AudioUtils
     }
 
     /// <summary>
+    /// 对 16bit PCM 应用数字增益（返回新数组，不改动原数据；增益 ≤1 时原样返回）。
+    /// 带削波钳位（±32767）。用于低增益麦克风的适配：在采集源头统一放大，
+    /// VAD / 唤醒词门控 / 云端识别 / 本地识别全部受益。
+    /// </summary>
+    public static byte[] ApplyGain(byte[] pcm16, double gain)
+    {
+        if (pcm16.Length < 2 || gain <= 1.0) return pcm16;
+
+        var count = pcm16.Length / 2;
+        var result = new byte[pcm16.Length];
+        for (var i = 0; i < count; i++)
+        {
+            var sample = (short)(pcm16[i * 2] | (pcm16[i * 2 + 1] << 8));
+            var scaled = (int)(sample * gain);
+            if (scaled > 32767) scaled = 32767;
+            else if (scaled < -32768) scaled = -32768;
+
+            var s = (short)scaled;
+            result[i * 2] = (byte)(s & 0xFF);
+            result[i * 2 + 1] = (byte)((s >> 8) & 0xFF);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// 将若干 PCM 16bit 数据块封装为完整的 WAV 字节流（含 44 字节头）。
     /// </summary>
     public static byte[] BuildWavBytes(IEnumerable<byte[]> chunks, int sampleRate = 16000, short channels = 1, short bitsPerSample = 16)

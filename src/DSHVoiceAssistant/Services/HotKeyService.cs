@@ -24,6 +24,140 @@ public static class HotKeyService
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     /// <summary>
+    /// 解析快捷键组合字符串（如 "Ctrl+Alt+D" / "Ctrl+Shift+F1" / "Win+Space"）。
+    /// 规则：至少一个修饰键（Ctrl/Alt/Shift/Win）+ 恰好一个主键。
+    /// </summary>
+    /// <param name="combo">组合字符串（大小写不敏感，'+' 分隔）</param>
+    /// <param name="modifiers">解析出的修饰键位组合</param>
+    /// <param name="vk">解析出的虚拟键码</param>
+    /// <param name="error">解析失败时的中文错误信息</param>
+    /// <returns>是否解析成功</returns>
+    public static bool TryParse(string combo, out uint modifiers, out uint vk, out string error)
+    {
+        modifiers = 0;
+        vk = 0;
+        error = "";
+
+        if (string.IsNullOrWhiteSpace(combo))
+        {
+            error = "快捷键不能为空";
+            return false;
+        }
+
+        var parts = combo.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+        {
+            error = "格式应为“修饰键+主键”，如 Ctrl+Alt+D";
+            return false;
+        }
+
+        string? mainKey = null;
+        foreach (var part in parts)
+        {
+            var mod = part.ToUpperInvariant() switch
+            {
+                "CTRL" or "CONTROL" => ModControl,
+                "ALT" => ModAlt,
+                "SHIFT" => ModShift,
+                "WIN" or "WINDOWS" or "CMD" or "META" => ModWin,
+                _ => 0u
+            };
+            if (mod != 0)
+            {
+                if ((modifiers & mod) != 0)
+                {
+                    error = "修饰键重复：" + part;
+                    return false;
+                }
+                modifiers |= mod;
+            }
+            else
+            {
+                if (mainKey != null)
+                {
+                    error = "主键只能有一个：" + part;
+                    return false;
+                }
+                mainKey = part;
+            }
+        }
+
+        if (modifiers == 0)
+        {
+            error = "快捷键至少需要一个修饰键（Ctrl/Alt/Shift/Win）";
+            return false;
+        }
+        if (mainKey == null || !TryGetVirtualKey(mainKey, out vk))
+        {
+            error = "无法识别的主键：" + (mainKey ?? "");
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>把主键名称（如 D / F5 / Space / -）映射为虚拟键码</summary>
+    private static bool TryGetVirtualKey(string key, out uint vk)
+    {
+        vk = 0;
+        var k = key.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(k)) return false;
+
+        // 单个字符：字母 / 数字 / 常用符号
+        if (k.Length == 1)
+        {
+            var c = k[0];
+            if (c is >= 'A' and <= 'Z') { vk = (uint)c; return true; }
+            if (c is >= '0' and <= '9') { vk = (uint)c; return true; }
+            switch (c)
+            {
+                case ' ': vk = 0x20; return true;   // Space
+                case '-': vk = 0xBD; return true;
+                case '=': vk = 0xBB; return true;
+                case '[': vk = 0xDB; return true;
+                case ']': vk = 0xDD; return true;
+                case '\\': vk = 0xDC; return true;
+                case ';': vk = 0xBA; return true;
+                case '\'': vk = 0xDE; return true;
+                case ',': vk = 0xBC; return true;
+                case '.': vk = 0xBE; return true;
+                case '/': vk = 0xBF; return true;
+                case '`': vk = 0xC0; return true;
+            }
+            return false;
+        }
+
+        // 功能键 F1-F12
+        if (k.Length >= 2 && k[0] == 'F' && int.TryParse(k[1..], out var fn) && fn is >= 1 and <= 12)
+        {
+            vk = (uint)(0x70 + fn - 1); // F1=0x70 … F12=0x7B
+            return true;
+        }
+
+        vk = k switch
+        {
+            "SPACE" => 0x20,
+            "ENTER" => 0x0D,
+            "TAB" => 0x09,
+            "ESC" or "ESCAPE" => 0x1B,
+            "BACK" or "BACKSPACE" => 0x08,
+            "DEL" or "DELETE" => 0x2E,
+            "INS" or "INSERT" => 0x2D,
+            "UP" => 0x26,
+            "DOWN" => 0x28,
+            "LEFT" => 0x25,
+            "RIGHT" => 0x27,
+            "HOME" => 0x24,
+            "END" => 0x23,
+            "PGUP" or "PAGEUP" => 0x21,
+            "PGDN" or "PAGEDOWN" => 0x22,
+            "PAUSE" => 0x13,
+            "PRTSC" or "PRINTSCREEN" => 0x2C,
+            _ => 0
+        };
+        return vk != 0;
+    }
+
+    /// <summary>
     /// 注册全局快捷键（默认 Ctrl+Alt+D）。
     /// </summary>
     /// <param name="window">宿主窗口（WPF）</param>

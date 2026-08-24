@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows;
 using DSHVoiceAssistant.Config;
 using DSHVoiceAssistant.Models;
@@ -50,6 +51,13 @@ public partial class App : WpfApplication
 
         Logger.Init();
         Logger.Info("========== DSH 语音助手启动 ==========");
+        Logger.Info("命令行参数: " + (e.Args.Length > 0 ? string.Join(" ", e.Args) : "（无）"));
+
+        // 静默启动（开机自启携带 --silent）：不显示主窗口，仅驻留托盘
+        var silent = e.Args.Any(a => string.Equals(a, "--silent", StringComparison.OrdinalIgnoreCase));
+
+        // 兼容旧安装：已有自启动注册但缺 --silent 参数时自动补上
+        AutoStartHelper.EnsureSilentFlag();
 
         // ---------- 依赖注入装配 ----------
         var configService = new ConfigService();
@@ -76,7 +84,7 @@ public partial class App : WpfApplication
         var viewModel = _services.GetRequiredService<MainViewModel>();
         var window = new MainWindow(viewModel, _orchestrator, config, _tray);
         MainWindow = window;
-        window.Show();
+        if (!silent) window.Show(); // 静默启动不显示界面，托盘双击/右键可随时调出
 
         _orchestrator.Start();
 

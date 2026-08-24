@@ -28,7 +28,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         _orchestrator.ErrorOccurred += OnErrorOccurred;
 
         ToggleMuteCommand = new RelayCommand(ToggleMute);
-        ForceActivateCommand = new RelayCommand(() => _orchestrator.ForceActivate(), () => _orchestrator.State == DSHState.Idle);
+        ForceActivateCommand = new RelayCommand(() => _orchestrator.ForceActivate(),
+            () => _orchestrator.State is DSHState.Idle or DSHState.WakeChecking or DSHState.Speaking);
         OpenSettingsCommand = new RelayCommand(() => OpenSettingsRequested?.Invoke());
         ExitCommand = new RelayCommand(() => ExitRequested?.Invoke());
     }

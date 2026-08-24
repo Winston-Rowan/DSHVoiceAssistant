@@ -14,10 +14,14 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
     private readonly DSHConfig _config;
     private readonly object _lock = new();
     private WaveInEvent? _waveIn;
+    private double _noiseFloor = 0.002;
 
     public AudioCaptureService(DSHConfig config) => _config = config;
 
     public bool IsCapturing { get; private set; }
+
+    /// <summary>实时噪声底噪估计（归一化 RMS，EMA 自适应；安静时缓慢更新，说话时不污染）</summary>
+    public double CurrentNoiseFloor => Volatile.Read(ref _noiseFloor);
 
     public int DeviceNumber
     {
@@ -68,7 +72,8 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
                 _waveIn.RecordingStopped += OnRecordingStopped;
                 _waveIn.StartRecording();
                 IsCapturing = true;
-                Logger.Info($"麦克风已启动（设备 {device}）");
+                Volatile.Write(ref _noiseFloor, 0.002); // 底噪从零开始重新自适应
+                Logger.Info($"麦克风已启动（设备 {device}，数字增益 {_config.MicGain:0.0}x）");
             }
             catch (Exception ex)
             {
@@ -103,16 +108,33 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
         try
         {
             if (e.BytesRecorded <= 0) return;
-            var data = new byte[e.BytesRecorded];
-            Buffer.BlockCopy(e.Buffer, 0, data, 0, e.BytesRecorded);
+            var raw = new byte[e.BytesRecorded];
+            Buffer.BlockCopy(e.Buffer, 0, raw, 0, e.BytesRecorded);
+
+            // 低增益麦克风适配：采集源头统一放大（含削波钳位），下游全部受益
+            var data = AudioUtils.ApplyGain(raw, _config.MicGain);
 
             var rms = AudioUtils.ComputeRms(data);
+            UpdateNoiseFloor(rms);
             DataAvailable?.Invoke(data);
             LevelChanged?.Invoke(rms);
         }
         catch (Exception ex)
         {
             Logger.Error("音频回调异常: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// EMA 自适应底噪：安静帧（低于 4 倍底噪，即低于语音判定阈值）缓慢更新，
+    /// 说话帧不参与，避免底噪被语音抬高。
+    /// </summary>
+    private void UpdateNoiseFloor(float rms)
+    {
+        var floor = Volatile.Read(ref _noiseFloor);
+        if (rms < floor * 4)
+        {
+            Volatile.Write(ref _noiseFloor, floor * 0.98 + rms * 0.02);
         }
     }
 
