@@ -38,13 +38,13 @@ public sealed class EdgeGlowWindow : Window
     // 状态专属色系（每套 5 色构成整圈连续光谱）
     private static readonly MediaColor[][] Palettes =
     [
-        // 倾听（青蓝系）
+        // 倾听（绿系）
         [
-            MediaColor.FromRgb(0x5E, 0xE0, 0xD9),
-            MediaColor.FromRgb(0x4C, 0xC9, 0xF0),
-            MediaColor.FromRgb(0x0A, 0x84, 0xFF),
-            MediaColor.FromRgb(0x43, 0x61, 0xEE),
-            MediaColor.FromRgb(0x7B, 0x61, 0xFF)
+            MediaColor.FromRgb(0xA8, 0xF0, 0xA8),
+            MediaColor.FromRgb(0x7C, 0xE8, 0x8C),
+            MediaColor.FromRgb(0x4C, 0xD9, 0x64),
+            MediaColor.FromRgb(0x28, 0xC7, 0x6F),
+            MediaColor.FromRgb(0x1D, 0xB9, 0x54)
         ],
         // 识别/思考（紫系）
         [
@@ -54,21 +54,21 @@ public sealed class EdgeGlowWindow : Window
             MediaColor.FromRgb(0xC7, 0x7D, 0xFF),
             MediaColor.FromRgb(0xE0, 0xAA, 0xFF)
         ],
-        // 执行（橙系）
+        // 执行（红系）
         [
-            MediaColor.FromRgb(0xFF, 0xB7, 0x03),
-            MediaColor.FromRgb(0xFF, 0x9E, 0x00),
-            MediaColor.FromRgb(0xFF, 0x85, 0x00),
-            MediaColor.FromRgb(0xFF, 0x6D, 0x00),
-            MediaColor.FromRgb(0xFF, 0xB3, 0x4D)
+            MediaColor.FromRgb(0xFF, 0x8A, 0x80),
+            MediaColor.FromRgb(0xFF, 0x5F, 0x5F),
+            MediaColor.FromRgb(0xFF, 0x3B, 0x30),
+            MediaColor.FromRgb(0xE5, 0x48, 0x4D),
+            MediaColor.FromRgb(0xC8, 0x1E, 0x1E)
         ],
-        // 播报（粉系）
+        // 播报（蓝系）
         [
-            MediaColor.FromRgb(0xFF, 0x5F, 0x87),
-            MediaColor.FromRgb(0xFF, 0x7B, 0xA9),
-            MediaColor.FromRgb(0xF1, 0x5B, 0xB5),
-            MediaColor.FromRgb(0xFF, 0x8F, 0xB1),
-            MediaColor.FromRgb(0xFF, 0xB3, 0xC7)
+            MediaColor.FromRgb(0x9E, 0xC8, 0xFF),
+            MediaColor.FromRgb(0x6F, 0xA8, 0xFF),
+            MediaColor.FromRgb(0x0A, 0x84, 0xFF),
+            MediaColor.FromRgb(0x2E, 0x7C, 0xF6),
+            MediaColor.FromRgb(0x1F, 0x5F, 0xD6)
         ]
     ];
 
@@ -145,7 +145,7 @@ public sealed class EdgeGlowWindow : Window
         Opacity = 0.8 + _level * 0.2;            // 亮度：静止 0.8 ↔ 说话 1.0
     }
 
-    /// <summary>状态 → 色系（倾听=青蓝 / 识别·思考=紫 / 执行=橙 / 播报=粉）</summary>
+    /// <summary>状态 → 色系（倾听=绿 / 识别·思考=紫 / 执行=红 / 播报=蓝）</summary>
     private static MediaColor[] GetPalette(DSHState state) => state switch
     {
         DSHState.Transcribing or DSHState.Thinking => Palettes[1],
