@@ -27,7 +27,8 @@
 
 1. **安装**：从 [GitHub Releases](https://github.com/Winston-Rowan/DSHVoiceAssistant/releases)
    下载 `DSHVoiceAssistant-Setup-1.0.0.exe` 并运行
-   （Windows 提示"发布者未知"时点 **更多信息 → 仍要运行** 即可，这是未签名安装包的正常提示）
+   （Windows 提示"发布者未知"时点 **更多信息 → 仍要运行** 即可——这是未签名安装包的正常提示，
+   代码签名证书太贵了，作者以后会买的 😄）
 2. **配置**：首次启动后打开设置 → 基础配置 → 填入你的阿里云百炼 API 密钥
    （或设置环境变量 `DSH_API_KEY`）
 3. **使用**：说 **"老梁"**（或按 **Ctrl+Alt+D**）→ 说出指令 → 听它执行
