@@ -211,4 +211,12 @@ public sealed class DSHConfig
     /// <summary>对话浮层文字阴影（无背景下的可读性）</summary>
     [JsonPropertyName("OverlayTextShadow")]
     public bool OverlayTextShadow { get; set; } = true;
+
+    /// <summary>
+    /// 语音汇报语言（所有语音回复强制使用，提示词注入约束）：
+    /// zh = 中文（普通话）/ en = English。复杂操作只在执行结束后汇报结果，
+    /// 不播报中间推理过程。
+    /// </summary>
+    [JsonPropertyName("ReportLanguage")]
+    public string ReportLanguage { get; set; } = "zh";
 }

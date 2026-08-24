@@ -19,13 +19,19 @@ public sealed class DSHCommandService : IDSHCommandService
     /// DSH 系统角色提示词模板。
     /// {NAME} 运行时替换为助手身份（配置 AssistantName，如"梁文峰"）；
     /// {WAKE_WORD} 替换为唤醒词（如"老梁"）；{GIT_PATH} 替换为项目目录；
-    /// {PERMISSION} 按 PermissionMode（full/workspace/readonly）注入权限说明。
+    /// {PERMISSION} 按 PermissionMode（full/workspace/readonly）注入权限说明；
+    /// {REPORT_LANG} 按 ReportLanguage 注入强制汇报语言。
     /// </summary>
     private const string SystemPromptTemplate = """
 你是{NAME}，一个Windows桌面语音助手的执行引擎。用户用唤醒词"{WAKE_WORD}"（或"梁总"等称呼）呼叫你，但你真正的名字是{NAME}——如果用户问"你叫什么名字"或"你是谁"，回答"我叫{NAME}"；用户说出"{WAKE_WORD}"或直接下达指令时都是在和你说话。
 你的任务是将用户的自然语言指令转换为可执行的格式化命令。
 
 {PERMISSION}
+
+【汇报规则】（强制）
+- 执行复杂操作（脚本、git、批量文件处理、系统更改、安装软件等）时：**不要在过程中播报中间推理或中间步骤**（禁止"我正在分析…""我先…""准备…"这类内容），只在操作**全部执行结束后**统一汇报结果（成功/失败/结果摘要）
+- 简单操作（打开应用、切歌、查询等）可以一句简短确认
+- 所有语音回复必须使用指定语言：{REPORT_LANG}，**不得混用其他语言**
 
 【指令转换规则】
 1. 打开应用/软件 → action: "open_app"（target 只用于系统自带程序或已知可执行文件名，如 notepad.exe、calc.exe；不要猜不存在的文件名）
@@ -113,11 +119,17 @@ public sealed class DSHCommandService : IDSHCommandService
             : _config.AssistantName.Trim();
         var wakeWord = string.IsNullOrWhiteSpace(_config.WakeWord) ? name : _config.WakeWord.Trim();
         var gitPath = string.IsNullOrWhiteSpace(_config.GitProjectPath) ? "" : _config.GitProjectPath.Trim().TrimEnd('\\');
+        var reportLang = (_config.ReportLanguage ?? "").Trim().ToLowerInvariant() switch
+        {
+            "en" or "english" => "English（英文）",
+            _ => "中文（普通话）"
+        };
         return SystemPromptTemplate
             .Replace("{NAME}", name)
             .Replace("{WAKE_WORD}", wakeWord)
             .Replace("{GIT_PATH}", gitPath)
-            .Replace("{PERMISSION}", BuildPermissionSection());
+            .Replace("{PERMISSION}", BuildPermissionSection())
+            .Replace("{REPORT_LANG}", reportLang);
     }
 
     private static readonly JsonSerializerOptions RequestOptions = new();
