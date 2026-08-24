@@ -8,6 +8,7 @@ using DSHVoiceAssistant.Models;
 using MediaBrushes = System.Windows.Media.Brushes;
 using MediaColor = System.Windows.Media.Color;
 using MediaHorizontalAlignment = System.Windows.HorizontalAlignment;
+using MediaFontFamily = System.Windows.Media.FontFamily;
 
 namespace DSHVoiceAssistant.Controls;
 
@@ -29,14 +30,15 @@ public static class ConversationOverlayVisibility
 public sealed class ConversationOverlayWindow : Window
 {
     private const double OverlayHeight = 220;
-    private static readonly MediaColor ShadowColor = MediaColor.FromRgb(0x00, 0x00, 0x00);
 
+    private readonly DSHConfig _config;
     private readonly TextBlock _userText;
     private readonly TextBlock _replyText;
     private bool _shown;
 
-    public ConversationOverlayWindow()
+    public ConversationOverlayWindow(DSHConfig config)
     {
+        _config = config;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = null; // 无背景：全透明
@@ -81,13 +83,14 @@ public sealed class ConversationOverlayWindow : Window
             ShadowDepth = 1.5,
             Direction = 270,
             Opacity = 0.9,
-            Color = ShadowColor
+            Color = MediaColor.FromRgb(0x00, 0x00, 0x00)
         }
     };
 
-    /// <summary>显示对话（已在显示时仅更新文字）；带 250ms 淡入</summary>
+    /// <summary>显示对话（已在显示时仅更新文字）；带 250ms 淡入；每次应用最新样式设置</summary>
     public void ShowOverlay(string userText, string replyText)
     {
+        ApplyStyle();
         _userText.Text = userText;
         _replyText.Text = replyText;
         _replyText.Visibility = string.IsNullOrWhiteSpace(replyText)
@@ -98,6 +101,64 @@ public sealed class ConversationOverlayWindow : Window
         _shown = true;
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250)));
         Show();
+    }
+
+    /// <summary>按配置应用浮层文字样式（字体/字号/颜色/阴影；设置保存后下次显示即时生效）</summary>
+    private void ApplyStyle()
+    {
+        var fontSize = Math.Clamp(_config.OverlayFontSize, 14, 48);
+        var family = string.IsNullOrWhiteSpace(_config.OverlayFontFamily)
+            ? "Microsoft YaHei UI"
+            : _config.OverlayFontFamily.Trim();
+        var color = TryParseColor(_config.OverlayTextColor) ?? MediaColor.FromRgb(0xFF, 0xFF, 0xFF);
+        var shadow = _config.OverlayTextShadow;
+
+        foreach (var line in new[] { _userText, _replyText })
+        {
+            line.FontFamily = new MediaFontFamily(family);
+            line.FontSize = fontSize;
+            line.Foreground = new SolidColorBrush(color);
+            line.Effect = shadow
+                ? new DropShadowEffect
+                {
+                    BlurRadius = 6,
+                    ShadowDepth = 1.5,
+                    Direction = 270,
+                    Opacity = 0.9,
+                    Color = MediaColor.FromRgb(0x00, 0x00, 0x00)
+                }
+                : null;
+        }
+    }
+
+    /// <summary>解析 #RRGGBB / #AARRGGBB 颜色；失败返回 null（回退白色）</summary>
+    private static MediaColor? TryParseColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        var h = hex.Trim().TrimStart('#');
+        try
+        {
+            if (h.Length == 6)
+            {
+                return MediaColor.FromRgb(
+                    Convert.ToByte(h.Substring(0, 2), 16),
+                    Convert.ToByte(h.Substring(2, 2), 16),
+                    Convert.ToByte(h.Substring(4, 2), 16));
+            }
+            if (h.Length == 8)
+            {
+                return MediaColor.FromArgb(
+                    Convert.ToByte(h.Substring(0, 2), 16),
+                    Convert.ToByte(h.Substring(2, 2), 16),
+                    Convert.ToByte(h.Substring(4, 2), 16),
+                    Convert.ToByte(h.Substring(6, 2), 16));
+            }
+        }
+        catch
+        {
+            // 非法格式 → 回退
+        }
+        return null;
     }
 
     public void HideOverlay()

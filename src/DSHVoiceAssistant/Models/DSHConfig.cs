@@ -195,4 +195,20 @@ public sealed class DSHConfig
     /// </summary>
     [JsonPropertyName("ConversationOverlayEnabled")]
     public bool ConversationOverlayEnabled { get; set; } = true;
+
+    /// <summary>对话浮层文字字体</summary>
+    [JsonPropertyName("OverlayFontFamily")]
+    public string OverlayFontFamily { get; set; } = "Microsoft YaHei UI";
+
+    /// <summary>对话浮层文字字号</summary>
+    [JsonPropertyName("OverlayFontSize")]
+    public double OverlayFontSize { get; set; } = 26;
+
+    /// <summary>对话浮层文字颜色（#RRGGBB）</summary>
+    [JsonPropertyName("OverlayTextColor")]
+    public string OverlayTextColor { get; set; } = "#FFFFFF";
+
+    /// <summary>对话浮层文字阴影（无背景下的可读性）</summary>
+    [JsonPropertyName("OverlayTextShadow")]
+    public bool OverlayTextShadow { get; set; } = true;
 }

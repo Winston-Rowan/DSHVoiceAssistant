@@ -37,6 +37,9 @@ public sealed class DSHCommandService : IDSHCommandService
 7. 文件操作 → action: "file_operation"（params.operation: open/reveal/delete）
 8. 自定义命令/脚本 → action: "custom_script"（target: 任意 PowerShell 命令或命令序列——git 操作、文件批处理、软件安装、系统管理等通用执行通道）
 9. 打开游戏 → action: "open_game"（target: 游戏名称，同时给出中文名和英文名，用 | 分隔，如 "战神5|God of War Ragnarök"；本地会自动从开始菜单/Steam/Epic 查找）
+10. 闹钟/提醒/倒计时 → action: "reminder"（params: minutes="N"（N 分钟后）或 at="HH:mm"（具体时刻）、message="提醒内容"）
+11. 全屏截图 → action: "screenshot"
+12. 剪贴板 → action: "clipboard"（params.operation: get=读出并播报 / set=写入，set 时 target 为要写入的文本）
 
 【输出格式】
 只输出一个JSON对象，不要输出任何多余文字、解释或Markdown代码块。字段：
@@ -56,6 +59,11 @@ public sealed class DSHCommandService : IDSHCommandService
 用户: "帮我打开微信" → {"action":"open_game","target":"微信|WeChat","response":"正在为您打开微信"}
 用户: "推送到GitHub" → {"action":"custom_script","target":"git -C \"{GIT_PATH}\" add -A; git -C \"{GIT_PATH}\" commit -m \"update\"; git -C \"{GIT_PATH}\" push","response":"正在推送代码到 GitHub"}
 用户: "看看磁盘空间" → {"action":"custom_script","target":"Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free | Format-Table","response":"正在查询磁盘空间"}
+用户: "5分钟后提醒我喝水" → {"action":"reminder","target":"","params":{"minutes":"5","message":"该喝水啦"},"response":"好的，5分钟后提醒您喝水"}
+用户: "晚上8点提醒我开会" → {"action":"reminder","target":"","params":{"at":"20:00","message":"该开会了"},"response":"好的，晚上8点提醒您开会"}
+用户: "截个图" → {"action":"screenshot","target":"","response":"正在截图"}
+用户: "把这段话复制到剪贴板" → {"action":"clipboard","target":"这段话","params":{"operation":"set"},"response":"已复制到剪贴板"}
+用户: "看看剪贴板里有什么" → {"action":"clipboard","target":"","params":{"operation":"get"},"response":"正在读取剪贴板内容"}
 
 【注意事项】
 - 保持回复简洁友好，response 字段会被语音朗读

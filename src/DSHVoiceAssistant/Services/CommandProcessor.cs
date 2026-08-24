@@ -52,6 +52,12 @@ public sealed class CommandProcessor : ICommandProcessor
                         return CommandResult.Fail("只读模式下禁止执行命令/脚本，请切换权限模式");
                     return await RunScriptAsync(command.Target, cancellationToken);
 
+                case CommandAction.Screenshot:
+                    return ScreenshotAction();
+
+                case CommandAction.Clipboard:
+                    return ClipboardAction(command);
+
                 case CommandAction.TextReply:
                     return CommandResult.Ok(string.IsNullOrWhiteSpace(command.Response) ? command.Target : command.Response);
 
@@ -67,6 +73,79 @@ public sealed class CommandProcessor : ICommandProcessor
     }
 
     // ---------- 具体动作 ----------
+
+    /// <summary>全屏截图：保存到图片目录，返回文件路径</summary>
+    private static CommandResult ScreenshotAction()
+    {
+        try
+        {
+            var bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
+                         ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
+            using var bitmap = new System.Drawing.Bitmap(bounds.Width, bounds.Height);
+            using (var g = System.Drawing.Graphics.FromImage(bitmap))
+            {
+                g.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size);
+            }
+
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "DSH截图");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, $"截图_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+            bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            Logger.Info("screenshot: " + path);
+            return CommandResult.Ok("已保存截图：" + path);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("截图失败: " + ex.Message);
+            return CommandResult.Fail("截图失败：" + ex.Message);
+        }
+    }
+
+    /// <summary>剪贴板操作：get=读出文本（截断播报）；set=写入 target 文本（需 STA 线程）</summary>
+    private static CommandResult ClipboardAction(DSHResponse command)
+    {
+        var operation = command.Params != null && command.Params.TryGetValue("operation", out var op)
+            ? op.ToLowerInvariant()
+            : "get";
+        try
+        {
+            if (operation == "set")
+            {
+                var text = command.Target ?? "";
+                if (string.IsNullOrEmpty(text)) return CommandResult.Fail("未指定要写入剪贴板的文本");
+                RunSta(() => System.Windows.Clipboard.SetText(text));
+                Logger.Info("clipboard: set " + JsonUtils.Truncate(text, 60));
+                return CommandResult.Ok("已复制到剪贴板");
+            }
+
+            string? content = null;
+            RunSta(() => content = System.Windows.Clipboard.GetText());
+            if (string.IsNullOrWhiteSpace(content)) return CommandResult.Fail("剪贴板中没有文本");
+            var snippet = content.Length > 80 ? content[..80] + "…" : content;
+            Logger.Info("clipboard: get " + JsonUtils.Truncate(snippet, 80));
+            return CommandResult.Ok("剪贴板内容：" + snippet);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("剪贴板操作失败: " + ex.Message);
+            return CommandResult.Fail("剪贴板操作失败：" + ex.Message);
+        }
+    }
+
+    /// <summary>在独立 STA 线程上执行（剪贴板等 COM 组件要求）</summary>
+    private static void RunSta(Action action)
+    {
+        Exception? error = null;
+        var thread = new Thread(() =>
+        {
+            try { action(); }
+            catch (Exception ex) { error = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error != null) throw error;
+    }
 
     private CommandResult OpenApp(string? target)
     {

@@ -111,6 +111,31 @@ public partial class SettingsWindow : Window
         SelfVoiceFilterCheck.IsChecked = _config.SelfVoiceFilter;
         EdgeGlowCheck.IsChecked = _config.EdgeGlowEnabled;
         OverlayCheck.IsChecked = _config.ConversationOverlayEnabled;
+
+        // 浮层文字样式
+        OverlayFontBox.ItemsSource = new[]
+        {
+            "Microsoft YaHei UI", "微软雅黑", "黑体", "楷体", "宋体", "Consolas"
+        };
+        OverlayFontBox.SelectedItem = _config.OverlayFontFamily;
+        OverlaySizeSlider.Value = Math.Clamp(_config.OverlayFontSize, 14, 48);
+        OverlaySizeValue.Text = ((int)OverlaySizeSlider.Value) + "px";
+        var colors = new Dictionary<string, string>
+        {
+            ["白色"] = "#FFFFFF",
+            ["浅灰"] = "#E8E8E8",
+            ["青色"] = "#5EE0D9",
+            ["天蓝"] = "#7EC8FF",
+            ["粉色"] = "#FF8FB1",
+            ["浅绿"] = "#A8F0A8",
+            ["橙色"] = "#FFB34D",
+            ["黄色"] = "#FFE066"
+        };
+        OverlayColorBox.ItemsSource = colors.Keys.ToList();
+        OverlayColorBox.SelectedItem = colors.FirstOrDefault(kv => kv.Value.Equals(_config.OverlayTextColor, StringComparison.OrdinalIgnoreCase)).Key;
+        OverlayColorText.Text = _config.OverlayTextColor;
+        OverlayShadowCheck.IsChecked = _config.OverlayTextShadow;
+
         TrayCheck.IsChecked = _config.MinimizeToTray;
         AutoStartCheck.IsChecked = AutoStartHelper.IsRegistered();
     }
@@ -158,6 +183,10 @@ public partial class SettingsWindow : Window
         _config.SelfVoiceFilter = SelfVoiceFilterCheck.IsChecked == true;
         _config.EdgeGlowEnabled = EdgeGlowCheck.IsChecked == true;
         _config.ConversationOverlayEnabled = OverlayCheck.IsChecked == true;
+        _config.OverlayFontFamily = OverlayFontBox.SelectedItem?.ToString() ?? "Microsoft YaHei UI";
+        _config.OverlayFontSize = OverlaySizeSlider.Value;
+        _config.OverlayTextColor = (OverlayColorText.Text ?? "#FFFFFF").Trim();
+        _config.OverlayTextShadow = OverlayShadowCheck.IsChecked == true;
         _config.MinimizeToTray = TrayCheck.IsChecked == true;
         _config.ConversationTimeoutSeconds = (int)ConvTimeoutSlider.Value;
         _config.DshHistoryRounds = (int)HistorySlider.Value;
@@ -229,6 +258,9 @@ public partial class SettingsWindow : Window
         => HistoryValue.Text = HistorySlider.Value <= 0
             ? "关闭"
             : ((int)HistorySlider.Value) + " 轮";
+
+    private void OverlaySizeSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => OverlaySizeValue.Text = ((int)OverlaySizeSlider.Value) + "px";
 
     // ---------- 快捷键捕获 ----------
 

@@ -29,6 +29,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
 
     private readonly object _gate = new();
     private readonly List<byte[]> _chunks = [];
+    private readonly List<CancellationTokenSource> _reminders = []; // 活跃的闹钟提醒
 
     // 前置缓冲（pre-roll）：始终滚动缓存最近 ~0.6s 音频，
     // VAD 判定"开始说话"时回填进录音——VAD 需连续 3 帧（约 300ms）才触发，
@@ -148,6 +149,12 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         CancelConversationTimer();
         _wake?.Stop();
         _audio.Stop();
+        // 取消所有未触发的闹钟提醒
+        lock (_gate)
+        {
+            foreach (var cts in _reminders) cts.Cancel();
+            _reminders.Clear();
+        }
         Logger.Info("DSH 编排器已停止");
     }
 
@@ -425,6 +432,23 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
             {
                 speak = result.Message.Length > 120 ? result.Message[..120] : result.Message;
             }
+
+            // 闹钟/提醒：本地定时，到点语音播报（不依赖 DSH）
+            if (string.Equals(command.Action, "reminder", StringComparison.OrdinalIgnoreCase))
+            {
+                var delay = ReminderParser.ParseDelay(command.Params);
+                if (delay != null)
+                {
+                    var msg = ReminderParser.GetMessage(command.Params) ?? "您设置的提醒时间到了";
+                    ScheduleReminder(delay.Value, msg);
+                    Logger.Info($"已设置提醒（{delay.Value.TotalMinutes:0.#} 分钟后）：{msg}");
+                }
+                else
+                {
+                    speak = "提醒参数无法识别，请说清楚几分钟后或几点提醒";
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(speak))
             {
                 SetState(DSHState.Speaking, "回复中…");
@@ -445,6 +469,30 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         {
             _processing = false;
         }
+    }
+
+    /// <summary>到点后语音播报提醒内容（后台任务，不阻塞流水线；应用退出时取消）</summary>
+    private void ScheduleReminder(TimeSpan delay, string message)
+    {
+        var cts = new CancellationTokenSource();
+        lock (_gate) _reminders.Add(cts);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay, cts.Token);
+                Logger.Info("提醒触发: " + message);
+                await _tts.SpeakAsync(message);
+            }
+            catch (TaskCanceledException)
+            {
+                // 应用退出/已取消
+            }
+            finally
+            {
+                lock (_gate) _reminders.Remove(cts);
+            }
+        }, cts.Token);
     }
 
     /// <summary>

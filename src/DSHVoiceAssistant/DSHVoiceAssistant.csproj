@@ -9,7 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>DSHVoiceAssistant</AssemblyName>
     <RootNamespace>DSHVoiceAssistant</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.0.0</Version>
     <Product>DSH 语音助手</Product>
     <Description>基于 DSH 指令引擎的 Windows 语音助手（语音采集/唤醒/展示 + 云端指令执行）</Description>
   </PropertyGroup>

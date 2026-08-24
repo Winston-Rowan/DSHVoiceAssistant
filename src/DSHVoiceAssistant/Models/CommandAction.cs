@@ -32,6 +32,15 @@ public enum CommandAction
     /// <summary>打开网址</summary>
     OpenUrl,
 
+    /// <summary>闹钟/提醒/倒计时（params: minutes 或 at + message）</summary>
+    Reminder,
+
+    /// <summary>全屏截图（保存到图片目录）</summary>
+    Screenshot,
+
+    /// <summary>剪贴板操作（params.operation: get / set）</summary>
+    Clipboard,
+
     /// <summary>未知动作</summary>
     Unknown
 }
@@ -57,6 +66,9 @@ public static class CommandActionExtensions
             "customscript" => CommandAction.CustomScript,
             "controlmedia" => CommandAction.ControlMedia,
             "openurl" => CommandAction.OpenUrl,
+            "reminder" or "timer" or "alarm" or "remind" => CommandAction.Reminder,
+            "screenshot" or "screencapture" => CommandAction.Screenshot,
+            "clipboard" => CommandAction.Clipboard,
             _ => CommandAction.Unknown
         };
     }

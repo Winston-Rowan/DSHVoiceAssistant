@@ -51,7 +51,7 @@ public partial class MainWindow : Window
 
         // 屏幕边缘光晕 + 对话浮层：状态变化（可能来自音频/线程池线程，封送到 UI 线程）+ 窗口可见性变化
         _edgeGlow = new EdgeGlowWindow();
-        _overlay = new ConversationOverlayWindow();
+        _overlay = new ConversationOverlayWindow(_config);
         _orchestrator.StateChanged += (state, _) =>
             Dispatcher.BeginInvoke(() =>
             {

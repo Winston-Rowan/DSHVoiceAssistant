@@ -74,19 +74,12 @@ public sealed class EdgeGlowWindow : Window
     private const double LineThickness = 4;    // 极细亮线
     private const double HaloThickness = 18;   // 柔和辉光（含亮线区域）
 
-    // 底部中央光球：3 层径向光晕（白核 → 状态主色 → 状态辅色）
-    private const double BallCoreSize = 88;
-    private const double BallMidSize = 140;
-    private const double BallOuterSize = 210;
-
     // 每条边覆盖的色阶跨度：4 条边 × 1.25 = 5 = 色系周期 → 整圈无缝
     private const double HueSpanPerEdge = 1.25;
 
     private readonly Canvas _canvas;
     private readonly Border[] _lines = new Border[4];  // 细亮线
     private readonly Border[] _halos = new Border[4];  // 柔和辉光
-    private readonly Ellipse[] _ball = new Ellipse[3]; // 光球三层
-    private readonly ScaleTransform _ballScale = new();
 
     private MediaColor[] _palette = Palettes[0];
     private bool _shown;
@@ -141,7 +134,7 @@ public sealed class EdgeGlowWindow : Window
     }
 
     /// <summary>
-    /// 语音实时响应（音频线程调用）：说话时亮度增强、光球放大。
+    /// 语音实时响应（音频线程调用）：说话时亮度增强。
     /// level 为归一化 RMS，静音≈0、正常说话≈0.02~0.15。
     /// </summary>
     public void UpdateLevel(float level)
@@ -149,7 +142,6 @@ public sealed class EdgeGlowWindow : Window
         if (!_shown) return;
         _level = Math.Clamp(level / 0.12, 0, 1); // 归一化到 0~1
         Opacity = 0.8 + _level * 0.2;            // 亮度：静止 0.8 ↔ 说话 1.0
-        _ballScale.ScaleX = _ballScale.ScaleY = 1.0 + _level * 0.4; // 光球：静止 1.0 ↔ 说话 1.4
     }
 
     /// <summary>状态 → 色系（倾听=青蓝 / 识别·思考=紫 / 执行=橙 / 播报=粉）</summary>
@@ -180,19 +172,6 @@ public sealed class EdgeGlowWindow : Window
 
         foreach (var s in _halos) _canvas.Children.Add(s);
         foreach (var s in _lines) _canvas.Children.Add(s);
-
-        // 底部中央光球（3 层径向光晕；颜色在 ApplyPhase 按状态更新）
-        _ball[0] = CreateBall(BallCoreSize);
-        _ball[1] = CreateBall(BallMidSize);
-        _ball[2] = CreateBall(BallOuterSize);
-        foreach (var b in _ball)
-        {
-            b.RenderTransformOrigin = new MediaPoint(0.5, 0.5);
-            b.RenderTransform = _ballScale; // 三层共用缩放（随音量脉动）
-            Canvas.SetLeft(b, (w - b.Width) / 2);
-            Canvas.SetTop(b, h - b.Height * 0.62); // 球心位于屏高约 81% 处
-            _canvas.Children.Add(b);
-        }
     }
 
     private static Border CreateStrip(bool horizontal, double thickness, double length, double left, double top)
@@ -206,17 +185,6 @@ public sealed class EdgeGlowWindow : Window
         Canvas.SetLeft(border, left);
         Canvas.SetTop(border, top);
         return border;
-    }
-
-    private static Ellipse CreateBall(double size)
-    {
-        return new Ellipse
-        {
-            Width = size,
-            Height = size,
-            Fill = MediaBrushes.Transparent, // ApplyPhase 按状态色系填充
-            Opacity = 1.0
-        };
     }
 
     // ---------- 动画 ----------
@@ -242,12 +210,7 @@ public sealed class EdgeGlowWindow : Window
             _halos[i].OpacityMask = haloMask;
         }
 
-        // 光球颜色随状态色系：白核 + 主色中晕 + 辅色外晕
-        _ball[0].Fill = BuildRadial(MediaColor.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
-        _ball[1].Fill = BuildRadial(WithAlpha(_palette[0], 0xCC));
-        _ball[2].Fill = BuildRadial(WithAlpha(_palette[2], 0x99));
-
-        // 低频呼吸（静止时）：细线/辉光/四角/光球一起明暗循环，周期 2.5s
+        // 低频呼吸（静止时）：细线/辉光一起明暗循环，周期 2.5s
         var breath = new DoubleAnimation(0.65, 1.0, TimeSpan.FromSeconds(2.5))
         {
             AutoReverse = true,
@@ -255,24 +218,7 @@ public sealed class EdgeGlowWindow : Window
         };
         foreach (var s in _lines) s.BeginAnimation(OpacityProperty, breath);
         foreach (var s in _halos) s.BeginAnimation(OpacityProperty, breath);
-        foreach (var b in _ball) b.BeginAnimation(OpacityProperty, breath);
     }
-
-    private static RadialGradientBrush BuildRadial(MediaColor glowColor) => new()
-    {
-        GradientOrigin = new MediaPoint(0.5, 0.5),
-        Center = new MediaPoint(0.5, 0.5),
-        RadiusX = 0.5,
-        RadiusY = 0.5,
-        GradientStops = new GradientStopCollection(
-        [
-            new GradientStop(glowColor, 0),
-            new GradientStop(WithAlpha(glowColor, 0x00), 1)
-        ])
-    };
-
-    private static MediaColor WithAlpha(MediaColor c, byte alpha) =>
-        MediaColor.FromArgb(alpha, c.R, c.G, c.B);
 
     /// <summary>
     /// 构建一条边：沿边方向的连续光谱渐变（offset 平移动画 = 顺时针跑动），
@@ -311,13 +257,14 @@ public sealed class EdgeGlowWindow : Window
         }
         flow.GradientStops = new GradientStopCollection(gradientStops);
 
-        // 跨宽度方向：屏幕边框侧 → 内侧（四条边统一：边框在本地坐标 0 侧）
+        // 跨宽度方向：屏幕边框侧 → 内侧
+        // 注意本地坐标：右边条位于屏幕右缘，边框=本地 x1；左边条位于屏幕左缘，边框=本地 x0
         var (msx, msy, mex, mey) = edge switch
         {
             0 => (0.0, 0.0, 0.0, 1.0), // 上：边框=本地 y0
-            1 => (0.0, 0.0, 1.0, 0.0), // 右：边框=本地 x0
+            1 => (1.0, 0.0, 0.0, 0.0), // 右：边框=本地 x1
             2 => (0.0, 1.0, 0.0, 0.0), // 下：边框=本地 y1
-            _ => (0.0, 0.0, 1.0, 0.0)  // 左：边框=本地 x0（与右同理）
+            _ => (0.0, 0.0, 1.0, 0.0)  // 左：边框=本地 x0
         };
 
         // 细亮线掩膜：边缘处最亮，向内平滑衰减（4px 内）
