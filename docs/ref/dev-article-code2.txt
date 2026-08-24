@@ -1,0 +1,7 @@
+﻿<span class="k">let</span> <span class="nv">anim</span> <span class="o">=</span> <span class="kt">CABasicAnimation</span><span class="p">(</span><span class="nv">keyPath</span><span class="p">:</span> <span class="s">"lineDashPhase"</span><span class="p">)</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">fromValue</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">toValue</span> <span class="o">=</span> <span class="n">perimeter</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="mf">5.0</span>
+<span class="n">anim</span><span class="o">.</span><span class="n">repeatCount</span> <span class="o">=</span> <span class="o">.</span><span class="n">infinity</span>
+<span class="n">shape</span><span class="o">.</span><span class="nf">add</span><span class="p">(</span><span class="n">anim</span><span class="p">,</span> <span class="nv">forKey</span><span class="p">:</span> <span class="s">"flow"</span><span class="p">)</span>
+

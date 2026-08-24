@@ -1,0 +1,3 @@
+﻿<span class="k">let</span> <span class="nv">param</span> <span class="o">=</span> <span class="kt">NWParameters</span><span class="o">.</span><span class="n">tcp</span>
+<span class="n">param</span><span class="o">.</span><span class="n">acceptLocalOnly</span> <span class="o">=</span> <span class="kc">true</span>  <span class="c1">// Only accept connections from localhost</span>
+

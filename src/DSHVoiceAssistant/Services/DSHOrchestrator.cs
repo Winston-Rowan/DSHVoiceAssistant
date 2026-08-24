@@ -30,6 +30,14 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     private readonly object _gate = new();
     private readonly List<byte[]> _chunks = [];
 
+    // 前置缓冲（pre-roll）：始终滚动缓存最近 ~0.6s 音频，
+    // VAD 判定"开始说话"时回填进录音——VAD 需连续 3 帧（约 300ms）才触发，
+    // 若没有缓冲，句首 1~2 个字会被截掉
+    private const double PreRollSeconds = 0.6;
+    private const int SampleRate = 16000; // 与 AudioConfig.SampleRate 一致（16kHz/16bit/单声道）
+    private readonly List<byte[]> _preRoll = [];
+    private int _preRollBytes;
+
     private IWakeWordDetection? _wake;
     private VoiceActivityDetector? _vad;
     private CancellationTokenSource? _maxUtteranceCts;
@@ -38,6 +46,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     private bool _started;
     private bool _collecting;
     private bool _processing;
+    private int _sessionVersion; // 会话版本号：结束对话时自增，中断在途流水线
 
     public DSHOrchestrator(
         IAudioCapture audio,
@@ -155,7 +164,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
                 Logger.Info("快捷键打断播报并开始倾听");
                 _tts.Stop();
                 State = DSHState.Recording;
-                _collecting = true;
+                StartCollectingWithPreRoll();
                 StartMaxUtteranceTimer();
                 activated = true;
             }
@@ -168,7 +177,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
                     // 若用户正在说话（如刚说完唤醒词），直接接管当前片段
                     if (_vad?.IsInSpeech == true)
                     {
-                        _collecting = true;
+                        StartCollectingWithPreRoll();
                         StartMaxUtteranceTimer();
                     }
                 }
@@ -179,6 +188,28 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         SetState(DSHState.Recording, "倾听中，请说出您的指令…");
     }
 
+    /// <summary>
+    /// 结束当前对话（键盘 ESC / 语音结束词条共用）：中断在途流水线、停止播报、
+    /// 清空录音与前置缓冲、回到待命。静默结束，不播报。
+    /// </summary>
+    public void EndConversation()
+    {
+        lock (_gate)
+        {
+            if (State == DSHState.Idle && !_processing) return; // 本就没有对话
+            _sessionVersion++; // 在途流水线检测到版本变化后自行中止
+            _collecting = false;
+            _chunks.Clear();
+            ClearPreRoll();
+        }
+        _maxUtteranceCts?.Cancel();
+        CancelConversationTimer();
+        _vad?.Reset();
+        if (State == DSHState.Speaking) _tts.Stop();
+        SetState(DSHState.Idle, "待命中");
+        Logger.Info("对话已结束（ESC/结束指令）");
+    }
+
     public void ToggleMute()
     {
         IsMuted = !IsMuted;
@@ -187,6 +218,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         {
             _collecting = false;
             _chunks.Clear();
+            ClearPreRoll();
         }
         _maxUtteranceCts?.Cancel();
         _vad?.Reset();
@@ -229,8 +261,32 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     {
         lock (_gate)
         {
+            // 维护前置缓冲（最近 PreRollSeconds 秒）
+            _preRoll.Add(data);
+            _preRollBytes += data.Length;
+            var maxBytes = (int)(SampleRate * 2 * PreRollSeconds);
+            while (_preRollBytes > maxBytes && _preRoll.Count > 0)
+            {
+                _preRollBytes -= _preRoll[0].Length;
+                _preRoll.RemoveAt(0);
+            }
+
             if (_collecting) _chunks.Add(data);
         }
+    }
+
+    /// <summary>开始收集录音时把前置缓冲回填，保住句首音节</summary>
+    private void StartCollectingWithPreRoll()
+    {
+        _chunks.AddRange(_preRoll);
+        _collecting = true;
+    }
+
+    /// <summary>清空前置缓冲（播报开始/结束、静音时调用，防止回声进入缓冲）</summary>
+    private void ClearPreRoll()
+    {
+        _preRoll.Clear();
+        _preRollBytes = 0;
     }
 
     private void OnSpeechStarted()
@@ -246,13 +302,13 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
                 Logger.Info("检测到用户插嘴，打断播报并接管语音");
                 _tts.Stop();
                 State = DSHState.Recording;
-                _collecting = true;
+                StartCollectingWithPreRoll();
                 StartMaxUtteranceTimer();
             }
             // 处于"倾听中"或"待命中/唤醒核对中"时开始积累音频
             else if (State is DSHState.Recording or DSHState.Idle or DSHState.WakeChecking)
             {
-                _collecting = true;
+                StartCollectingWithPreRoll();
                 if (State == DSHState.Recording) StartMaxUtteranceTimer();
             }
         }
@@ -311,10 +367,12 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     {
         if (_processing) return;
         _processing = true;
+        var session = _sessionVersion; // 记录会话版本：ESC/结束指令中断后不再继续
         try
         {
             SetState(DSHState.Transcribing, "语音识别中…");
             var recognition = await _recognizer.RecognizeAsync(wav);
+            if (session != _sessionVersion) return; // 对话已被结束
             if (!recognition.IsSuccess)
             {
                 RaiseError(recognition.ErrorMessage);
@@ -329,10 +387,21 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
                 return;
             }
 
+            // 语音结束对话：命中词条（没事了/退下/滚吧等）→ 静默结束当前对话回到待命，
+            // 不消耗 DSH API 额度、不播报
+            if (EndConversationMatcher.IsEndPhrase(text))
+            {
+                Logger.Info("检测到结束对话指令，结束当前对话: " + text);
+                TextRecognized?.Invoke(text);
+                SetState(DSHState.Idle, "待命中");
+                return;
+            }
+
             TextRecognized?.Invoke(text);
 
             SetState(DSHState.Thinking, "DSH 正在理解指令…");
             var command = await _dsh.ExecuteAsync(text);
+            if (session != _sessionVersion) return; // 对话已被结束
             if (!command.Success)
             {
                 RaiseError(command.ErrorMessage);
@@ -343,6 +412,7 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
 
             SetState(DSHState.Executing, "正在执行…");
             var result = await _processor.ExecuteAsync(command);
+            if (session != _sessionVersion) return; // 对话已被结束
             if (!result.Success)
             {
                 RaiseError(result.Message);
@@ -350,6 +420,11 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
             }
 
             var speak = !string.IsNullOrWhiteSpace(command.Response) ? command.Response : result.Message;
+            // 命令/脚本执行类（如 git 推送）：播报真实执行结果（输出摘要/失败原因），截断保持简洁
+            if (command.Action == "custom_script" && !string.IsNullOrWhiteSpace(result.Message))
+            {
+                speak = result.Message.Length > 120 ? result.Message[..120] : result.Message;
+            }
             if (!string.IsNullOrWhiteSpace(speak))
             {
                 SetState(DSHState.Speaking, "回复中…");
@@ -380,8 +455,9 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
     {
         try
         {
-            // 进入播报前复位 VAD，清掉播报前残留的"说话中"状态
+            // 进入播报前复位 VAD 并清空前置缓冲（防止自己的回声进入句首缓冲）
             _vad?.Reset();
+            ClearPreRoll();
             await _tts.SpeakAsync(speak);
         }
         catch (Exception ex)
@@ -390,8 +466,9 @@ public sealed class DSHOrchestrator : IDSHOrchestrator
         }
         if (State == DSHState.Speaking)
         {
-            // 播报结束复位 VAD：丢弃回声可能留下的 VAD 内部状态，防止误判
+            // 播报结束复位 VAD、清空缓冲：丢弃回声可能留下的状态，防止误判/句首污染
             _vad?.Reset();
+            ClearPreRoll();
             ContinueListening();
         }
     }

@@ -1,0 +1,3 @@
+﻿<span class="c1">// No Access-Control-Allow-Origin header</span>
+<span class="c1">// Web JavaScript cannot invoke endpoints</span>
+

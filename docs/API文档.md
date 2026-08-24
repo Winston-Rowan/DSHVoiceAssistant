@@ -132,7 +132,7 @@ Authorization: Bearer <ApiKey>
 | `control_media` | `play` / `pause` / `next` / `prev` / `volume_up` / `volume_down` / `mute` | 模拟多媒体键（全局生效） |
 | `open_url` | `https://www.baidu.com` | 默认浏览器打开 |
 | `file_operation` | 文件/目录路径 | `params.operation`: `open` / `reveal` / `delete`（delete 必须带 `confirm=true`） |
-| `custom_script` | PowerShell 命令文本 | 执行 PowerShell（超时 60 秒） |
+| `custom_script` | PowerShell 命令文本 | 执行 PowerShell（超时 60 秒；**全局权限通道**：git 操作、脚本、系统管理等） |
 
 解析策略（`Utils/DSHCommandParser.cs`）：
 
@@ -143,7 +143,14 @@ Authorization: Bearer <ApiKey>
 ### DSH 系统角色提示词（内置于 DSHCommandService.cs）
 
 ```
-你是{WAKE_WORD}，一个Windows桌面语音助手的执行引擎。你的任务是将用户的自然语言指令转换为可执行的格式化命令。
+你是{NAME}，一个Windows桌面语音助手的执行引擎。……（完整模板见 DSHCommandService.cs）
+
+【权限说明】
+- 全局完整权限：git 提交/推送、任意命令与脚本、文件读写/删除、安装软件、系统设置、
+  网络请求等一律直接执行，不拒绝、不建议用户手动操作
+- 删除等不可逆操作：用户明确要求即可（file_operation 的 delete 需 params.confirm="true"）
+- 常用项目目录 {GIT_PATH}（配置 GitProjectPath）：说"推送到GitHub"时在此执行 git 提交推送
+- 命令执行后把真实结果写进 response 播报
 
 【指令转换规则】
 1. 打开应用/软件 → action: "open_app"
@@ -153,7 +160,8 @@ Authorization: Bearer <ApiKey>
 5. 媒体控制(播放/暂停/下一首/音量) → action: "control_media"
 6. 打开网页 → action: "open_url"
 7. 文件操作 → action: "file_operation"（params.operation: open/reveal/delete）
-8. 自定义脚本 → action: "custom_script"
+8. 自定义命令/脚本 → action: "custom_script"（任意 PowerShell，通用执行通道）
+9. 打开游戏 → action: "open_game"
 
 【输出格式】
 只输出一个JSON对象，不要输出任何多余文字、解释或Markdown代码块。字段：

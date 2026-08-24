@@ -15,6 +15,9 @@ public interface IAudioCapture
     /// <summary>采集到一帧 PCM 原始数据（音频线程触发）</summary>
     event Action<byte[]>? DataAvailable;
 
+    /// <summary>采集到一帧原始（未增益）PCM 数据（音频线程触发；本地 SAPI 唤醒等使用）</summary>
+    event Action<byte[]>? RawDataAvailable;
+
     /// <summary>音量变化（归一化 RMS 0~1，音频线程触发，用于波形与 VAD）</summary>
     event Action<float>? LevelChanged;
 

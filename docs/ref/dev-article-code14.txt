@@ -1,0 +1,14 @@
+﻿<span class="kt">NotificationCenter</span><span class="o">.</span><span class="k">default</span><span class="o">.</span><span class="nf">addObserver</span><span class="p">(</span>
+    <span class="nv">forName</span><span class="p">:</span> <span class="kt">NSApplication</span><span class="o">.</span><span class="n">didChangeScreenParametersNotification</span><span class="p">,</span>
+    <span class="nv">object</span><span class="p">:</span> <span class="kc">nil</span><span class="p">,</span>
+    <span class="nv">queue</span><span class="p">:</span> <span class="o">.</span><span class="n">main</span>
+<span class="p">)</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
+    <span class="c1">// Debounce 500ms to avoid rapid rebuilds</span>
+    <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">screenChangeWorkItem</span><span class="p">?</span><span class="o">.</span><span class="nf">cancel</span><span class="p">()</span>
+    <span class="k">let</span> <span class="nv">work</span> <span class="o">=</span> <span class="kt">DispatchWorkItem</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
+        <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">handleScreenChange</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">screenChangeWorkItem</span> <span class="o">=</span> <span class="n">work</span>
+    <span class="kt">DispatchQueue</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="nf">asyncAfter</span><span class="p">(</span><span class="nv">deadline</span><span class="p">:</span> <span class="o">.</span><span class="nf">now</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="nv">execute</span><span class="p">:</span> <span class="n">work</span><span class="p">)</span>
+<span class="p">}</span>
+

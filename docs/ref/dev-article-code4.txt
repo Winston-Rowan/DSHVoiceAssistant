@@ -1,0 +1,5 @@
+﻿<span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="mi">0</span><span class="o">..<</span><span class="mi">20</span> <span class="p">{</span>
+    <span class="k">let</span> <span class="nv">hue</span> <span class="o">=</span> <span class="p">(</span><span class="n">baseHue</span> <span class="o">+</span> <span class="kt">Double</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">)</span><span class="o">.</span><span class="nf">truncatingRemainder</span><span class="p">(</span><span class="nv">dividingBy</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="c1">// Each segment has a different color, forming a gradient</span>
+<span class="p">}</span>
+

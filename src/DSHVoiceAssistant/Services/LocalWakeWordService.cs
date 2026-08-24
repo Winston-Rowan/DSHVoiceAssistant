@@ -36,6 +36,8 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
     private Thread? _worker;
     private volatile bool _running;
     private bool _started;
+    private DateTime _lastGateLog = DateTime.MinValue;
+    private DateTime _lastNullLog = DateTime.MinValue;
 
     public LocalWakeWordService(IAudioCapture audio, DSHConfig config)
     {
@@ -84,13 +86,15 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
             throw new InvalidOperationException("系统未安装本地语音识别引擎（需要 Windows 语音识别组件）");
         }
 
-        _audio.DataAvailable += OnAudioData;
+        // 订阅原始（未增益）音频：SAPI 引擎自带 AGC，对增益/削波音频识别反而变差，
+        // 回归原始音频（此前版本唤醒正常的输入）。
+        _audio.RawDataAvailable += OnAudioData;
 
         _running = true;
         _worker = new Thread(WorkerLoop) { IsBackground = true, Name = "wake-worker" };
         _worker.Start();
         Logger.Info("本地唤醒词检测已启动（引擎: " + info.Description +
-                    "，滑动窗口 " + WindowSeconds + "s / 批次 " + BatchIntervalMs + "ms）");
+                    "，滑动窗口 " + WindowSeconds + "s / 批次 " + BatchIntervalMs + "ms，输入=原始音频）");
     }
 
     public void Stop()
@@ -99,7 +103,7 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
         _started = false;
 
         _running = false;
-        _audio.DataAvailable -= OnAudioData;
+        _audio.RawDataAvailable -= OnAudioData;
         _worker?.Join(TimeSpan.FromSeconds(4));
         _worker = null;
 
@@ -195,7 +199,17 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
 
         // RMS 门控：窗口内几乎没有声音就跳过（省 CPU）。
         // 阈值取用户阈值与实时底噪的较高者：低增益麦克风/环境噪声自适应。
-        if (avgRms < Math.Max(0.006, Math.Max(_config.VadThreshold * 0.5, _audio.CurrentNoiseFloor * 2))) return;
+        var gateThreshold = Math.Max(0.006, Math.Max(_config.VadThreshold * 0.5, _audio.CurrentNoiseFloor * 2));
+        if (avgRms < gateThreshold)
+        {
+            // 限频诊断：帮助定位"唤醒不了"（音频过小 / 底噪异常抬高阈值）
+            if (DateTime.UtcNow - _lastGateLog > TimeSpan.FromSeconds(10))
+            {
+                _lastGateLog = DateTime.UtcNow;
+                Logger.Info($"唤醒门控跳过（窗口RMS {avgRms:0.0000} < 阈值 {gateThreshold:0.0000}，底噪 {_audio.CurrentNoiseFloor:0.0000}）");
+            }
+            return;
+        }
         if (!IsEnabled) return;
 
         try
@@ -206,7 +220,16 @@ public sealed class LocalWakeWordService : IWakeWordDetection, IDisposable
                 new SpeechAudioFormatInfo(SampleRate, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
 
             var result = engine.Recognize();
-            if (result == null || !IsEnabled) return;
+            if (result == null || !IsEnabled)
+            {
+                // 限频诊断：引擎对窗口音频无识别结果（增益过高削波 / 音量过小 / 引擎异常）
+                if (result == null && DateTime.UtcNow - _lastNullLog > TimeSpan.FromSeconds(10))
+                {
+                    _lastNullLog = DateTime.UtcNow;
+                    Logger.Info($"唤醒引擎无识别结果（窗口 {WindowSeconds}s，RMS {avgRms:0.0000}）");
+                }
+                return;
+            }
 
             var text = result.Text;
             Logger.Info("本地唤醒引擎识别: " + text + "（conf=" + result.Confidence.ToString("0.00") + "）");

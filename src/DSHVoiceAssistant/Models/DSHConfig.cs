@@ -29,11 +29,36 @@ public sealed class DSHConfig
 
     /// <summary>唤醒词</summary>
     [JsonPropertyName("WakeWord")]
-    public string WakeWord { get; set; } = "二狗";
+    public string WakeWord { get; set; } = "老梁";
 
-    /// <summary>唤醒词的变体（本地识别引擎的词表），识别文本命中任一即唤醒</summary>
+    /// <summary>唤醒词变体（本地识别引擎的词表），识别文本命中任一即唤醒</summary>
     [JsonPropertyName("WakeWordVariants")]
-    public string[] WakeWordVariants { get; set; } = ["二狗", "尔苟", "ergou"];
+    public string[] WakeWordVariants { get; set; } = ["老梁", "梁文峰", "梁总", "laoliang"];
+
+    /// <summary>
+    /// 助手名称（DSH 系统提示词中的身份，如"梁文峰"）：
+    /// 用户问"你叫什么名字"时按此回答；界面/浮层显示也优先用此名称。
+    /// 留空则回退用唤醒词作为身份。
+    /// </summary>
+    [JsonPropertyName("AssistantName")]
+    public string AssistantName { get; set; } = "梁文峰";
+
+    /// <summary>
+    /// Git 项目目录（语音说"推送到GitHub"时在此目录执行 git 提交推送；工作区受限模式的边界）。
+    /// 注入 DSH 系统提示词，可设置中修改。
+    /// </summary>
+    [JsonPropertyName("GitProjectPath")]
+    public string GitProjectPath { get; set; } = "D:\\Projects\\DSHVoiceAssistant";
+
+    /// <summary>
+    /// DSH 执行权限模式（与 DSH 代理的三种权限一致）：
+    /// full = 完全访问（任意命令/文件/系统操作直接执行，推荐）
+    /// workspace = 工作区受限（文件操作与命令执行仅限 GitProjectPath 内）
+    /// readonly = 只读（仅查询/打开/搜索/媒体/对话，禁止执行与修改）
+    /// 提示词按模式注入权限说明；执行器对 readonly/workspace 有硬性拦截。
+    /// </summary>
+    [JsonPropertyName("PermissionMode")]
+    public string PermissionMode { get; set; } = "full";
 
     /// <summary>开机自启动（由设置窗口写入注册表）</summary>
     [JsonPropertyName("AutoStart")]
@@ -68,11 +93,12 @@ public sealed class DSHConfig
     public bool SelfVoiceFilter { get; set; } = true;
 
     /// <summary>
-    /// 麦克风数字增益（1.0 ~ 8.0，默认 3.0）：低增益麦克风适配，
-    /// 在采集源头统一放大 PCM，VAD/唤醒/识别全部受益；1.0 = 不增益。
+    /// 麦克风数字增益（1.0 ~ 8.0，默认 2.0）：低增益麦克风适配，
+    /// 在采集源头统一放大，云端识别受益；本地 SAPI 唤醒走原始音频（自带 AGC）；
+    /// 1.0 = 不增益。
     /// </summary>
     [JsonPropertyName("MicGain")]
-    public double MicGain { get; set; } = 3.0;
+    public double MicGain { get; set; } = 2.0;
 
     /// <summary>麦克风设备编号（0 为系统默认）</summary>
     [JsonPropertyName("MicDeviceNumber")]
@@ -118,9 +144,9 @@ public sealed class DSHConfig
     [JsonPropertyName("TtsModel")]
     public string TtsModel { get; set; } = "qwen3-tts-flash";
 
-    /// <summary>云端 TTS 音色（qwen3-tts-flash 支持 Cherry/Serena/Ethan/Noah 等）</summary>
+    /// <summary>云端 TTS 音色（qwen3-tts-flash：Andre 沉稳磁性男声 / Cherry 小姐姐 / Serena 温柔 / Ethan 阳光男声 等）</summary>
     [JsonPropertyName("TtsVoice")]
-    public string TtsVoice { get; set; } = "Cherry";
+    public string TtsVoice { get; set; } = "Andre";
 
     /// <summary>
     /// 连续对话超时（秒）：唤醒后处理完指令保持倾听（无需再次呼叫），
@@ -162,4 +188,11 @@ public sealed class DSHConfig
     /// </summary>
     [JsonPropertyName("EdgeGlowEnabled")]
     public bool EdgeGlowEnabled { get; set; } = true;
+
+    /// <summary>
+    /// 对话浮层：主窗口隐藏时，在桌面中下部透明显示对话内容
+    /// （用户指令 + 助手回复，无背景、文字不透明），回到待命或开窗时消失。
+    /// </summary>
+    [JsonPropertyName("ConversationOverlayEnabled")]
+    public bool ConversationOverlayEnabled { get; set; } = true;
 }

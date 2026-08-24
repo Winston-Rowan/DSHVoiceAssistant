@@ -1,0 +1,33 @@
+﻿<span class="kd">private</span> <span class="k">var</span> <span class="nv">flowTimer</span><span class="p">:</span> <span class="kt">Timer</span><span class="p">?</span>
+<span class="kd">private</span> <span class="k">var</span> <span class="nv">dashPhase</span><span class="p">:</span> <span class="kt">CGFloat</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="kd">private</span> <span class="k">var</span> <span class="nv">lastTickTime</span><span class="p">:</span> <span class="kt">CFTimeInterval</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="kd">private</span> <span class="kd">func</span> <span class="nf">startFlow</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nf">stopFlow</span><span class="p">()</span>
+    <span class="n">lastTickTime</span> <span class="o">=</span> <span class="kt">CACurrentMediaTime</span><span class="p">()</span>
+
+    <span class="n">flowTimer</span> <span class="o">=</span> <span class="kt">Timer</span><span class="o">.</span><span class="nf">scheduledTimer</span><span class="p">(</span><span class="nv">withTimeInterval</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">60.0</span><span class="p">,</span> <span class="nv">repeats</span><span class="p">:</span> <span class="kc">true</span><span class="p">)</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
+        <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">tickFlow</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="kt">RunLoop</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="nf">add</span><span class="p">(</span><span class="n">flowTimer</span><span class="o">!</span><span class="p">,</span> <span class="nv">forMode</span><span class="p">:</span> <span class="o">.</span><span class="n">common</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">private</span> <span class="kd">func</span> <span class="nf">tickFlow</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">let</span> <span class="nv">now</span> <span class="o">=</span> <span class="kt">CACurrentMediaTime</span><span class="p">()</span>
+    <span class="k">let</span> <span class="nv">dt</span> <span class="o">=</span> <span class="kt">CGFloat</span><span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">lastTickTime</span><span class="p">)</span>
+    <span class="n">lastTickTime</span> <span class="o">=</span> <span class="n">now</span>
+
+    <span class="c1">// Clamp dt to prevent huge jumps (e.g., returning from background)</span>
+    <span class="k">let</span> <span class="nv">clampedDt</span> <span class="o">=</span> <span class="nf">min</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">let</span> <span class="nv">perimeter</span> <span class="o">=</span> <span class="nf">currentPerimeter</span><span class="p">()</span>
+    <span class="k">guard</span> <span class="n">perimeter</span> <span class="o">></span> <span class="mi">0</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">animationDuration</span> <span class="o">></span> <span class="mi">0</span> <span class="k">else</span> <span class="p">{</span> <span class="k">return</span> <span class="p">}</span>
+
+    <span class="k">let</span> <span class="nv">speed</span> <span class="o">=</span> <span class="n">perimeter</span> <span class="o">/</span> <span class="kt">CGFloat</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">animationDuration</span><span class="p">)</span>
+    <span class="n">dashPhase</span> <span class="o">+=</span> <span class="n">speed</span> <span class="o">*</span> <span class="n">clampedDt</span> <span class="o">*</span> <span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">clockwise</span> <span class="p">?</span> <span class="mi">1</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">ringLayer</span><span class="o">.</span><span class="n">sublayers</span><span class="p">?</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="n">layer</span> <span class="nf">in</span>
+        <span class="p">(</span><span class="n">layer</span> <span class="k">as?</span> <span class="kt">CAShapeLayer</span><span class="p">)?</span><span class="o">.</span><span class="n">lineDashPhase</span> <span class="o">=</span> <span class="n">dashPhase</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+

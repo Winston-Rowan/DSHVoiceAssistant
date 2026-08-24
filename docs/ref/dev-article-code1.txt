@@ -1,0 +1,3 @@
+﻿AI Agent triggers hook → curl http://127.0.0.1:9876/start → Screen glows
+AI Agent finishes     → curl http://127.0.0.1:9876/stop  → Glow fades out
+

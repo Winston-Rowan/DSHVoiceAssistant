@@ -1,0 +1,14 @@
+﻿<span class="kd">private</span> <span class="kd">func</span> <span class="nf">resetSafetyTimer</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">safetyTimer</span><span class="p">?</span><span class="o">.</span><span class="nf">cancel</span><span class="p">()</span>
+    <span class="k">let</span> <span class="nv">work</span> <span class="o">=</span> <span class="kt">DispatchWorkItem</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
+        <span class="k">guard</span> <span class="k">let</span> <span class="nv">self</span> <span class="o">=</span> <span class="k">self</span> <span class="k">else</span> <span class="p">{</span> <span class="k">return</span> <span class="p">}</span>
+        <span class="k">if</span> <span class="k">self</span><span class="o">.</span><span class="n">activeCount</span> <span class="o">></span> <span class="mi">0</span> <span class="p">{</span>
+            <span class="nf">print</span><span class="p">(</span><span class="s">"⏰ 60s no activity, resetting to 0"</span><span class="p">)</span>
+            <span class="k">self</span><span class="o">.</span><span class="n">activeCount</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">self</span><span class="o">.</span><span class="nf">onStop</span><span class="p">?()</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">safetyTimer</span> <span class="o">=</span> <span class="n">work</span>
+    <span class="kt">DispatchQueue</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="nf">asyncAfter</span><span class="p">(</span><span class="nv">deadline</span><span class="p">:</span> <span class="o">.</span><span class="nf">now</span><span class="p">()</span> <span class="o">+</span> <span class="mf">60.0</span><span class="p">,</span> <span class="nv">execute</span><span class="p">:</span> <span class="n">work</span><span class="p">)</span>
+<span class="p">}</span>
+

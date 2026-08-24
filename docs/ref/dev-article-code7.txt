@@ -1,0 +1,5 @@
+﻿Layer 4: ██ (bright center, no blur)
+Layer 3: ████ (core line, blur 2)
+Layer 2: ██████ (mid glow, blur 8)
+Layer 1: ████████ (outer glow, blur 12)
+

@@ -34,9 +34,20 @@ public partial class SettingsWindow : Window
         DSHModelBox.Text = _config.DSHModel;
         WakeWordBox.Text = _config.WakeWord;
         WakeVariantsBox.Text = string.Join(", ", _config.WakeWordVariants);
+        NameBox.Text = _config.AssistantName;
 
         SearchEngineBox.ItemsSource = new[] { "baidu", "bing", "google" };
         SearchEngineBox.SelectedItem = _config.SearchEngine.ToLowerInvariant();
+
+        PermissionModeBox.ItemsSource = new[]
+        {
+            new { Key = "full", Label = "完全访问（任意命令/文件/系统操作直接执行，推荐）" },
+            new { Key = "workspace", Label = "工作区受限（文件与命令仅限 Git 项目目录）" },
+            new { Key = "readonly", Label = "只读（仅查询/打开/搜索，禁止执行与修改）" }
+        };
+        PermissionModeBox.DisplayMemberPath = "Label";
+        PermissionModeBox.SelectedValuePath = "Key";
+        PermissionModeBox.SelectedValue = _config.PermissionMode;
 
         var devices = AudioCaptureService.GetDeviceNames();
         if (devices.Count > 0)
@@ -79,8 +90,13 @@ public partial class SettingsWindow : Window
         WakeModeBox.SelectedValue = _config.WakeMode;
 
         ConvTimeoutSlider.Value = _config.ConversationTimeoutSeconds;
+        HistorySlider.Value = _config.DshHistoryRounds;
+        HistoryValue.Text = HistorySlider.Value <= 0
+            ? "关闭"
+            : ((int)HistorySlider.Value) + " 轮";
 
         AliasesBox.Text = string.Join("\n", _config.AppAliases.Select(kv => kv.Key + "=" + kv.Value));
+        GitPathBox.Text = _config.GitProjectPath;
         try
         {
             InventoryInfo.Text = $"已归档 {AppInventory.GetEntries().Count} 个软件条目（{AppInventory.MarkdownPath}）";
@@ -94,6 +110,7 @@ public partial class SettingsWindow : Window
         HotKeyDisplay.Text = _config.HotKeyCombo;
         SelfVoiceFilterCheck.IsChecked = _config.SelfVoiceFilter;
         EdgeGlowCheck.IsChecked = _config.EdgeGlowEnabled;
+        OverlayCheck.IsChecked = _config.ConversationOverlayEnabled;
         TrayCheck.IsChecked = _config.MinimizeToTray;
         AutoStartCheck.IsChecked = AutoStartHelper.IsRegistered();
     }
@@ -105,6 +122,7 @@ public partial class SettingsWindow : Window
         _config.SpeechModel = SpeechModelBox.Text.Trim();
         _config.DSHModel = DSHModelBox.Text.Trim();
         _config.WakeWord = WakeWordBox.Text.Trim();
+        _config.AssistantName = NameBox.Text.Trim();
 
         // 唤醒词变体：逗号/顿号/空格分隔；留空则按主词自动生成
         var variantText = (WakeVariantsBox.Text ?? "").Trim();
@@ -117,6 +135,7 @@ public partial class SettingsWindow : Window
             ? variants.ToArray()
             : WakeWordMatcher.BuildDefaultVariants(_config.WakeWord);
         _config.SearchEngine = SearchEngineBox.SelectedItem?.ToString() ?? "baidu";
+        _config.PermissionMode = PermissionModeBox.SelectedValue?.ToString() ?? "full";
         _config.MicDeviceNumber = MicBox.SelectedIndex >= 0 ? MicBox.SelectedIndex : 0;
         _config.MicGain = MicGainSlider.Value;
         _config.VadThreshold = VadSlider.Value;
@@ -138,8 +157,10 @@ public partial class SettingsWindow : Window
         _config.HotKeyCombo = combo;
         _config.SelfVoiceFilter = SelfVoiceFilterCheck.IsChecked == true;
         _config.EdgeGlowEnabled = EdgeGlowCheck.IsChecked == true;
+        _config.ConversationOverlayEnabled = OverlayCheck.IsChecked == true;
         _config.MinimizeToTray = TrayCheck.IsChecked == true;
         _config.ConversationTimeoutSeconds = (int)ConvTimeoutSlider.Value;
+        _config.DshHistoryRounds = (int)HistorySlider.Value;
 
         // 应用别名（每行 名称=路径）
         var aliases = new Dictionary<string, string>();
@@ -149,6 +170,7 @@ public partial class SettingsWindow : Window
                 aliases[aliasName] = aliasValue;
         }
         _config.AppAliases = aliases;
+        _config.GitProjectPath = GitPathBox.Text.Trim();
 
         // 开机自启动
         if (AutoStartCheck.IsChecked == true) AutoStartHelper.Register();
@@ -202,6 +224,11 @@ public partial class SettingsWindow : Window
         => ConvTimeoutValue.Text = ConvTimeoutSlider.Value <= 0
             ? "关闭"
             : ((int)ConvTimeoutSlider.Value) + "s";
+
+    private void HistorySlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => HistoryValue.Text = HistorySlider.Value <= 0
+            ? "关闭"
+            : ((int)HistorySlider.Value) + " 轮";
 
     // ---------- 快捷键捕获 ----------
 

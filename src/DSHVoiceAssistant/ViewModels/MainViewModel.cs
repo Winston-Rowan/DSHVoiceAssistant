@@ -20,7 +20,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         _orchestrator = orchestrator;
         _ui = SynchronizationContext.Current; // 在 UI 线程创建时捕获
         WakeWordDisplay = "唤醒词: " + config.WakeWord;
-        _wakeName = string.IsNullOrWhiteSpace(config.WakeWord) ? "助手" : config.WakeWord.Trim();
+        _wakeName = !string.IsNullOrWhiteSpace(config.AssistantName)
+            ? config.AssistantName.Trim()
+            : (string.IsNullOrWhiteSpace(config.WakeWord) ? "助手" : config.WakeWord.Trim());
 
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.TextRecognized += OnTextRecognized;

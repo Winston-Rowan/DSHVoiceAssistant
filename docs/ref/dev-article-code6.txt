@@ -1,0 +1,20 @@
+﻿<span class="k">for</span> <span class="p">(</span><span class="n">lineWidth</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">blur</span><span class="p">)</span> <span class="k">in</span> <span class="n">configs</span> <span class="p">{</span>
+    <span class="k">let</span> <span class="nv">shape</span> <span class="o">=</span> <span class="kt">CAShapeLayer</span><span class="p">()</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">ringLayer</span><span class="o">.</span><span class="n">bounds</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">fillColor</span> <span class="o">=</span> <span class="kc">nil</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">strokeColor</span> <span class="o">=</span> <span class="n">color</span><span class="o">.</span><span class="nf">withAlphaComponent</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span><span class="o">.</span><span class="n">cgColor</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">lineWidth</span> <span class="o">=</span> <span class="n">lineWidth</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">lineCap</span> <span class="o">=</span> <span class="o">.</span><span class="n">round</span>
+    <span class="n">shape</span><span class="o">.</span><span class="n">lineDashPattern</span> <span class="o">=</span> <span class="p">[</span><span class="kt">NSNumber</span><span class="p">(</span><span class="nv">value</span><span class="p">:</span> <span class="kt">Double</span><span class="p">(</span><span class="n">dashLen</span><span class="p">)),</span>
+                             <span class="kt">NSNumber</span><span class="p">(</span><span class="nv">value</span><span class="p">:</span> <span class="kt">Double</span><span class="p">(</span><span class="n">gapLen</span><span class="p">))]</span>
+
+    <span class="k">if</span> <span class="n">blur</span> <span class="o">></span> <span class="mi">0</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="nv">bf</span> <span class="o">=</span> <span class="kt">CIFilter</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="s">"CIGaussianBlur"</span><span class="p">)</span><span class="o">!</span>
+        <span class="n">bf</span><span class="o">.</span><span class="nf">setValue</span><span class="p">(</span><span class="n">blur</span><span class="p">,</span> <span class="nv">forKey</span><span class="p">:</span> <span class="s">"inputRadius"</span><span class="p">)</span>
+        <span class="n">shape</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">bf</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="n">ringLayer</span><span class="o">.</span><span class="nf">addSublayer</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<span class="p">}</span>
+

@@ -25,6 +25,9 @@ public interface IDSHOrchestrator : IDisposable
     /// <summary>静音/取消静音（暂停或恢复麦克风采集与唤醒检测）</summary>
     void ToggleMute();
 
+    /// <summary>结束当前对话（ESC/语音结束词条）：中断在途流水线、停止播报、回到待命</summary>
+    void EndConversation();
+
     /// <summary>状态变化（msg 为状态说明文字）</summary>
     event Action<DSHState, string>? StateChanged;
 

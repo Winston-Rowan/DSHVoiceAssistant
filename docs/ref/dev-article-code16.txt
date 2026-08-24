@@ -1,0 +1,4 @@
+﻿<span class="n">settings</span><span class="o">.</span><span class="n">$speed</span><span class="o">.</span><span class="n">sink</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
+    <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">rebuildLayers</span><span class="p">()</span>
+<span class="p">}</span><span class="o">.</span><span class="nf">store</span><span class="p">(</span><span class="nv">in</span><span class="p">:</span> <span class="o">&</span><span class="n">cancellables</span><span class="p">)</span>
+

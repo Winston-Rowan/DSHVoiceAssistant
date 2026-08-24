@@ -1,0 +1,21 @@
+﻿<span class="kd">class</span> <span class="kt">ControlServer</span> <span class="p">{</span>
+    <span class="kd">private</span> <span class="k">var</span> <span class="nv">activeCount</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="kd">private</span> <span class="kd">func</span> <span class="nf">processRequest</span><span class="p">(</span><span class="n">_</span> <span class="nv">raw</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">conn</span><span class="p">:</span> <span class="kt">NWConnection</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">switch</span> <span class="n">path</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="s">"/start"</span><span class="p">:</span>
+            <span class="n">activeCount</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="nf">onStart</span><span class="p">?()</span>
+            <span class="nf">resetSafetyTimer</span><span class="p">()</span>
+
+        <span class="k">case</span> <span class="s">"/stop"</span><span class="p">:</span>
+            <span class="n">activeCount</span> <span class="o">=</span> <span class="nf">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">activeCount</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">activeCount</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span> <span class="nf">onStop</span><span class="p">?()</span> <span class="p">}</span>
+
+        <span class="k">case</span> <span class="s">"/pulse"</span><span class="p">:</span>
+            <span class="n">activeCount</span> <span class="o">=</span> <span class="nf">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">activeCount</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">activeCount</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span> <span class="nf">onPulse</span><span class="p">?()</span> <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+

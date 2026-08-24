@@ -1,0 +1,5 @@
+﻿<span class="k">guard</span> <span class="n">method</span> <span class="o">==</span> <span class="s">"GET"</span> <span class="o">||</span> <span class="n">method</span> <span class="o">==</span> <span class="s">"OPTIONS"</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nf">sendResponse</span><span class="p">(</span><span class="mi">405</span><span class="p">,</span> <span class="s">"Method Not Allowed"</span><span class="p">,</span> <span class="nv">conn</span><span class="p">:</span> <span class="n">conn</span><span class="p">)</span>
+    <span class="k">return</span>
+<span class="p">}</span>
+

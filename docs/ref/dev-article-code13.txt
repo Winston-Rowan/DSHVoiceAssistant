@@ -1,0 +1,8 @@
+﻿<span class="kd">func</span> <span class="nf">totalScreenFrame</span><span class="p">()</span> <span class="o">-></span> <span class="kt">NSRect</span> <span class="p">{</span>
+    <span class="k">var</span> <span class="nv">frame</span> <span class="o">=</span> <span class="kt">NSRect</span><span class="o">.</span><span class="n">zero</span>
+    <span class="k">for</span> <span class="n">screen</span> <span class="k">in</span> <span class="kt">NSScreen</span><span class="o">.</span><span class="n">screens</span> <span class="p">{</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="kt">NSUnionRect</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">screen</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">frame</span>
+<span class="p">}</span>
+

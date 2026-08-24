@@ -21,6 +21,10 @@ public partial class MainWindow : Window
     private readonly DSHConfig _config;
     private readonly TrayIconService _tray;
     private readonly EdgeGlowWindow _edgeGlow;
+    private readonly ConversationOverlayWindow _overlay;
+    private readonly KeyboardHookService _keyboardHook;
+    private string _lastUserText = "";
+    private string _lastReplyText = "";
     private IDisposable? _hotkeyRegistration;
     private bool _allowClose;
 
@@ -35,7 +39,6 @@ public partial class MainWindow : Window
 
         // 波形数据直连（音频线程 → 控件内部线程安全队列）
         _orchestrator.LevelChanged += Waveform.PushLevel;
-
         // ViewModel 事件 → 窗口动作
         vm.OpenSettingsRequested += OpenSettings;
         vm.ExitRequested += ShutdownApp;
@@ -46,11 +49,38 @@ public partial class MainWindow : Window
         _tray.ToggleListeningRequested += () => vm.ToggleMuteCommand.Execute(null);
         _tray.ExitRequested += ShutdownApp;
 
-        // 屏幕边缘光晕：状态变化（可能来自音频/线程池线程，封送到 UI 线程）+ 窗口可见性变化
+        // 屏幕边缘光晕 + 对话浮层：状态变化（可能来自音频/线程池线程，封送到 UI 线程）+ 窗口可见性变化
         _edgeGlow = new EdgeGlowWindow();
+        _overlay = new ConversationOverlayWindow();
         _orchestrator.StateChanged += (state, _) =>
-            Dispatcher.BeginInvoke(() => UpdateEdgeGlow(state));
-        IsVisibleChanged += (_, _) => UpdateEdgeGlow();
+            Dispatcher.BeginInvoke(() =>
+            {
+                UpdateEdgeGlow(state);
+                UpdateConversationOverlay(state);
+            });
+        _orchestrator.TextRecognized += text => Dispatcher.BeginInvoke(() =>
+        {
+            _lastUserText = text;
+            UpdateConversationOverlay(_orchestrator.State);
+        });
+        _orchestrator.DSHReplied += reply => Dispatcher.BeginInvoke(() =>
+        {
+            _lastReplyText = reply;
+            UpdateConversationOverlay(_orchestrator.State);
+        });
+        // Siri 光效语音实时响应：音量驱动亮度与光球缩放（音频线程 → UI 封送）
+        _orchestrator.LevelChanged += level => Dispatcher.BeginInvoke(() => _edgeGlow.UpdateLevel(level));
+
+        // ESC 结束对话：仅在对话进行中消费按键，其余情况透传
+        _keyboardHook = new KeyboardHookService(
+            () => _orchestrator.State != DSHState.Idle,
+            () => _orchestrator.EndConversation());
+
+        IsVisibleChanged += (_, _) =>
+        {
+            UpdateEdgeGlow();
+            UpdateConversationOverlay();
+        };
     }
 
     /// <summary>注册/重新注册全局快捷键（组合键可在设置中自定义，保存后即时生效）</summary>
@@ -58,6 +88,13 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         ApplyHotKey();
+        _keyboardHook.Install(); // ESC 结束对话钩子（UI 线程消息循环）
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _keyboardHook.Dispose();
+        base.OnClosed(e);
     }
 
     /// <summary>
@@ -122,8 +159,9 @@ public partial class MainWindow : Window
         {
             ApplyHotKey();
         }
-        // 光晕开关可能变化 → 即时生效
+        // 光晕/浮层开关可能变化 → 即时生效
         UpdateEdgeGlow();
+        UpdateConversationOverlay();
     }
 
     // ---------- 屏幕边缘光晕 ----------
@@ -142,6 +180,30 @@ public partial class MainWindow : Window
         else
         {
             _edgeGlow.HideGlow();
+        }
+    }
+
+    // ---------- 对话浮层 ----------
+
+    /// <summary>
+    /// 按「配置开关 + 主窗口可见性 + 助手状态 + 是否有内容」计算并更新对话浮层。
+    /// 规则见 <see cref="ConversationOverlayVisibility.ShouldShow"/>。
+    /// </summary>
+    private void UpdateConversationOverlay(DSHState? state = null)
+    {
+        var s = state ?? _orchestrator.State;
+        if (ConversationOverlayVisibility.ShouldShow(_config.ConversationOverlayEnabled, IsVisible, s)
+            && !string.IsNullOrWhiteSpace(_lastUserText))
+        {
+            var wakeName = !string.IsNullOrWhiteSpace(_config.AssistantName)
+                ? _config.AssistantName.Trim()
+                : (string.IsNullOrWhiteSpace(_config.WakeWord) ? "助手" : _config.WakeWord.Trim());
+            var reply = string.IsNullOrWhiteSpace(_lastReplyText) ? "" : $"{wakeName}：{_lastReplyText}";
+            _overlay.ShowOverlay($"我：{_lastUserText}", reply);
+        }
+        else
+        {
+            _overlay.HideOverlay();
         }
     }
 

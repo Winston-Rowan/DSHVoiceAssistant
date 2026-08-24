@@ -1,0 +1,16 @@
+﻿<span class="kd">class</span> <span class="kt">AppSettings</span><span class="p">:</span> <span class="kt">ObservableObject</span> <span class="p">{</span>
+    <span class="kd">@Published</span> <span class="k">var</span> <span class="nv">speed</span><span class="p">:</span> <span class="kt">Int</span> <span class="p">{</span>
+        <span class="k">didSet</span> <span class="p">{</span>
+            <span class="kt">UserDefaults</span><span class="o">.</span><span class="n">standard</span><span class="o">.</span><span class="nf">set</span><span class="p">(</span><span class="n">speed</span><span class="p">,</span> <span class="nv">forKey</span><span class="p">:</span> <span class="s">"speed"</span><span class="p">)</span>
+            <span class="nf">notifyChange</span><span class="p">()</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kd">static</span> <span class="k">let</span> <span class="nv">shared</span> <span class="o">=</span> <span class="kt">AppSettings</span><span class="p">()</span>
+
+    <span class="kd">private</span> <span class="nf">init</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">self</span><span class="o">.</span><span class="n">speed</span> <span class="o">=</span> <span class="kt">UserDefaults</span><span class="o">.</span><span class="n">standard</span><span class="o">.</span><span class="nf">integer</span><span class="p">(</span><span class="nv">forKey</span><span class="p">:</span> <span class="s">"speed"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">speed</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span> <span class="n">speed</span> <span class="o">=</span> <span class="mi">5</span> <span class="p">}</span> <span class="c1">// default</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+

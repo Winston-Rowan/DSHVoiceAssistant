@@ -31,6 +31,9 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
 
     public event Action<byte[]>? DataAvailable;
 
+    /// <summary>原始（未增益）PCM 帧（音频线程触发）。供本地 SAPI 唤醒等对增益音频不兼容的消费方使用。</summary>
+    public event Action<byte[]>? RawDataAvailable;
+
     public event Action<float>? LevelChanged;
 
     /// <summary>枚举系统麦克风设备名称（设置窗口用）</summary>
@@ -111,7 +114,9 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
             var raw = new byte[e.BytesRecorded];
             Buffer.BlockCopy(e.Buffer, 0, raw, 0, e.BytesRecorded);
 
-            // 低增益麦克风适配：采集源头统一放大（含削波钳位），下游全部受益
+            // 低增益麦克风适配：采集源头统一放大（含削波钳位），云端识别等下游受益。
+            // 本地 SAPI 唤醒引擎对增益/削波音频识别不佳，单独走原始数据（RawDataAvailable）。
+            RawDataAvailable?.Invoke(raw);
             var data = AudioUtils.ApplyGain(raw, _config.MicGain);
 
             var rms = AudioUtils.ComputeRms(data);
@@ -127,14 +132,17 @@ public sealed class AudioCaptureService : IAudioCapture, IDisposable
 
     /// <summary>
     /// EMA 自适应底噪：安静帧（低于 4 倍底噪，即低于语音判定阈值）缓慢更新，
-    /// 说话帧不参与，避免底噪被语音抬高。
+    /// 说话帧不参与，避免底噪被语音抬高。封顶 0.008：防止底噪估计异常爬升，
+    /// 把唤醒门控/VAD 阈值顶到说话音量都够不着的高度。
     /// </summary>
     private void UpdateNoiseFloor(float rms)
     {
+        const double floorCap = 0.008;
         var floor = Volatile.Read(ref _noiseFloor);
         if (rms < floor * 4)
         {
-            Volatile.Write(ref _noiseFloor, floor * 0.98 + rms * 0.02);
+            var next = floor * 0.98 + rms * 0.02;
+            Volatile.Write(ref _noiseFloor, Math.Min(floorCap, next));
         }
     }
 
