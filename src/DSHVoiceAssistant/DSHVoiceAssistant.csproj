@@ -17,8 +17,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 图标作为资源（窗口 Icon 绑定） -->
+    <!-- 黑鲸鱼图标资源（窗口 Icon 绑定 + 标题栏 logo 显示） -->
     <Resource Include="Assets\DSHWhale.ico" />
+    <Resource Include="Assets\DSHWhale.png" />
   </ItemGroup>
 
   <ItemGroup>
