@@ -161,7 +161,23 @@ public partial class SettingsWindow : Window
         AutoStartCheck.IsChecked = AutoStartHelper.IsRegistered();
     }
 
+    /// <summary>应用按钮：保存设置（窗口保持打开），状态栏提示；部分设置需重启生效</summary>
+    private void ApplyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!ApplySettings()) return;
+        ApplyStatus.Text = "✓ 设置已应用（麦克风设备、模型名等部分设置需重启应用后生效）";
+        Logger.Info("设置已应用");
+    }
+
+    /// <summary>保存按钮：保存设置并关闭窗口</summary>
     private void SaveButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!ApplySettings()) return;
+        DialogResult = true;
+    }
+
+    /// <summary>把界面值写入配置并保存；快捷键非法时提示并保留原值。返回是否成功。</summary>
+    private bool ApplySettings()
     {
         _config.ApiKey = ApiKeyBox.Password.Trim();
         _config.ApiHost = ApiHostBox.Text.Trim();
@@ -231,10 +247,7 @@ public partial class SettingsWindow : Window
         _config.AutoStart = AutoStartCheck.IsChecked == true;
 
         new ConfigService().Save(_config);
-        Logger.Info("设置已保存");
-        WpfMessageBox.Show("设置已保存。\n部分设置（麦克风设备、模型名等）需要重启应用后生效。",
-            "DSH", MessageBoxButton.OK, MessageBoxImage.Information);
-        DialogResult = true;
+        return true;
     }
 
     private void CancelButton_OnClick(object sender, RoutedEventArgs e) => DialogResult = false;
