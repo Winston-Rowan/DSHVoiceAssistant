@@ -97,11 +97,22 @@ public sealed class TTSService : ITTSService, IDisposable
         var nativeHost = new Uri(_config.ApiHost).GetLeftPart(UriPartial.Authority);
         var endpoint = nativeHost + "/api/v1/services/aigc/multimodal-generation/generation";
 
+        // 语言类型跟随汇报语言设置：强制指定，避免自动检测对中英混合文本（如脚本输出）误判语种
+        var languageType = (_config.ReportLanguage ?? "").Trim().ToLowerInvariant() switch
+        {
+            "en" or "english" => "English",
+            _ => "Chinese"
+        };
         var payload = new
         {
             model = _config.TtsModel,
             input = new { text },
-            parameters = new { voice = _config.TtsVoice, response_format = new { format = "wav" } }
+            parameters = new
+            {
+                voice = _config.TtsVoice,
+                language_type = languageType,
+                response_format = new { format = "wav" }
+            }
         };
         var body = JsonSerializer.Serialize(payload);
 
