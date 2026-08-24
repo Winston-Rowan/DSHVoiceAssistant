@@ -103,6 +103,19 @@ public partial class App : WpfApplication
             try { AppInventory.Refresh(); }
             catch (Exception ex) { Logger.Warn("软件归档失败: " + ex.Message); }
         });
+
+        // 新装软件自动检测：每 30 分钟"找机会"对比软件安装状态指纹，
+        // 有变化（新安装/卸载）则自动重新整理清单，无需手动操作
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                try { await Task.Delay(TimeSpan.FromMinutes(30)); }
+                catch { return; }
+                try { AppInventory.RefreshIfChanged(); }
+                catch (Exception ex) { Logger.Warn("自动整理软件清单失败: " + ex.Message); }
+            }
+        });
     }
 
     protected override void OnExit(ExitEventArgs e)

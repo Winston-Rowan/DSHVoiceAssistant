@@ -77,6 +77,33 @@ public class AppInventoryTests
         Assert.Contains("注册表卸载项", md);
     }
 
+    // ---------- 指纹（新装软件自动检测） ----------
+
+    [Fact]
+    public void FingerprintOf_Deterministic()
+    {
+        var a = AppInventory.FingerprintOf(new[] { "微信", "微信", "QQ", "qq" });
+        var b = AppInventory.FingerprintOf(new[] { "qq", "QQ", "微信" });
+        Assert.Equal(a, b); // 去重 + 排序 → 与顺序/重复无关
+    }
+
+    [Fact]
+    public void FingerprintOf_ChangesWhenNewNameAdded()
+    {
+        var baseSet = AppInventory.FingerprintOf(new[] { "微信", "QQ" });
+        var withNew = AppInventory.FingerprintOf(new[] { "微信", "QQ", "Steam" });
+        Assert.NotEqual(baseSet, withNew); // 新软件 → 指纹变化
+    }
+
+    [Fact]
+    public void FingerprintOf_EmptyAndNullNames()
+    {
+        var empty = AppInventory.FingerprintOf(Array.Empty<string>());
+        var withJunk = AppInventory.FingerprintOf(new[] { "", "   ", null! });
+        Assert.Equal(empty, withJunk); // 空白名称不影响指纹
+        Assert.False(string.IsNullOrEmpty(empty));
+    }
+
     /// <summary>测试用临时目录（自动清理）</summary>
     private sealed class TempDir : IDisposable
     {

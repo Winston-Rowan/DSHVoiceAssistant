@@ -32,6 +32,9 @@ public static class AppInventory
     /// <summary>用户可读的 Markdown 清单路径</summary>
     public static string MarkdownPath => Path.Combine(AppContext.BaseDirectory, "Config", "软件清单.md");
 
+    /// <summary>归档状态（指纹+时间）路径：用于检测软件安装变化</summary>
+    public static string StatePath => Path.Combine(AppContext.BaseDirectory, "Config", "inventory-state.json");
+
     /// <summary>获取软件清单：优先缓存（24 小时内），过期或缺失则全量扫描。</summary>
     public static List<Entry> GetEntries()
     {
@@ -76,6 +79,7 @@ public static class AppInventory
                 new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(InventoryPath, json);
             File.WriteAllText(MarkdownPath, BuildMarkdown(dedup));
+            SaveState(ComputeFingerprint(), dedup.Count); // 记录归档基线，供变化检测
             Logger.Info($"软件归档完成: {dedup.Count} 个条目 → {InventoryPath}");
         }
         catch (Exception ex)
@@ -84,6 +88,173 @@ public static class AppInventory
         }
 
         return dedup;
+    }
+
+    // ---------- 变化检测（新装软件自动重新整理） ----------
+
+    /// <summary>
+    /// 找机会执行：若软件安装状态（指纹）与上次归档时不同，则自动重新整理清单。
+    /// 由启动任务与后台周期任务调用；返回是否发生了重新整理。
+    /// </summary>
+    public static bool RefreshIfChanged()
+    {
+        var fingerprint = ComputeFingerprint();
+        var state = LoadState();
+        if (state != null && state.Fingerprint == fingerprint) return false;
+
+        Logger.Info("检测到软件安装状态变化，自动重新整理软件清单…");
+        Refresh();
+        return true;
+    }
+
+    /// <summary>
+    /// 软件安装状态指纹：注册表卸载项 + 开始菜单/桌面快捷方式 + Steam + Epic 的名称集合。
+    /// 任一来源出现新软件都会导致指纹变化。
+    /// </summary>
+    public static string ComputeFingerprint()
+    {
+        var names = new List<string>();
+        try { names.AddRange(CollectUninstallNames()); } catch { }
+        try { names.AddRange(CollectShortcutNames()); } catch { }
+        try { names.AddRange(CollectSteamNames()); } catch { }
+        try { names.AddRange(CollectEpicNames()); } catch { }
+        return FingerprintOf(names);
+    }
+
+    /// <summary>纯函数：名称集合 → 指纹（小写归一化 + 去重排序后 SHA256）。供单元测试。</summary>
+    public static string FingerprintOf(IEnumerable<string> names)
+    {
+        var distinct = names
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim().ToLowerInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(n => n, StringComparer.Ordinal);
+        var joined = string.Join("|", distinct);
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(joined));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static List<string> CollectUninstallNames()
+    {
+        var names = new List<string>();
+        const string uninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+        var roots = new (RegistryKey Hive, string Sub)[]
+        {
+            (Registry.LocalMachine, uninstallPath),
+            (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (Registry.CurrentUser, uninstallPath),
+            (Registry.CurrentUser, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall")
+        };
+        foreach (var (hive, sub) in roots)
+        {
+            using var key = hive.OpenSubKey(sub);
+            if (key == null) continue;
+            foreach (var subName in key.GetSubKeyNames())
+            {
+                using var app = key.OpenSubKey(subName);
+                var name = app?.GetValue("DisplayName") as string;
+                if (!string.IsNullOrWhiteSpace(name)) names.Add(name.Trim());
+            }
+        }
+        return names;
+    }
+
+    private static List<string> CollectShortcutNames()
+    {
+        var names = new List<string>();
+        var dirs = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs"),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory)
+        };
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+            foreach (var lnk in Directory.EnumerateFiles(dir, "*.lnk", SearchOption.AllDirectories))
+            {
+                var name = Path.GetFileNameWithoutExtension(lnk);
+                if (!string.IsNullOrWhiteSpace(name)) names.Add(name);
+            }
+        }
+        return names;
+    }
+
+    private static List<string> CollectSteamNames()
+    {
+        var names = new List<string>();
+        var steamPath = Registry.GetValue(
+            @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", null) as string
+            ?? Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath", null) as string;
+        if (string.IsNullOrWhiteSpace(steamPath)) return names;
+        var appsDir = Path.Combine(steamPath, "steamapps");
+        if (!Directory.Exists(appsDir)) return names;
+        foreach (var acf in Directory.EnumerateFiles(appsDir, "appmanifest_*.acf"))
+        {
+            try
+            {
+                var name = AppFinder.ParseAcf(File.ReadAllText(acf)).GetValueOrDefault("name", "");
+                if (!string.IsNullOrWhiteSpace(name)) names.Add(name);
+            }
+            catch { }
+        }
+        return names;
+    }
+
+    private static List<string> CollectEpicNames()
+    {
+        var names = new List<string>();
+        var manifestsDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Epic", "EpicGamesLauncher", "Data", "Manifests");
+        if (!Directory.Exists(manifestsDir)) return names;
+        foreach (var item in Directory.EnumerateFiles(manifestsDir, "*.item"))
+        {
+            try
+            {
+                var info = AppFinder.ParseEpicItem(File.ReadAllText(item));
+                if (info != null && !string.IsNullOrWhiteSpace(info.Value.DisplayName))
+                    names.Add(info.Value.DisplayName);
+            }
+            catch { }
+        }
+        return names;
+    }
+
+    private sealed record InventoryState(string Fingerprint, DateTime ScannedAt, int Count);
+
+    private static InventoryState? LoadState()
+    {
+        try
+        {
+            if (!File.Exists(StatePath)) return null;
+            var doc = JsonDocument.Parse(File.ReadAllText(StatePath));
+            var root = doc.RootElement;
+            return new InventoryState(
+                root.TryGetProperty("fingerprint", out var fp) ? fp.GetString() ?? "" : "",
+                root.TryGetProperty("scannedAt", out var at) ? at.GetDateTime() : DateTime.MinValue,
+                root.TryGetProperty("count", out var ct) ? ct.GetInt32() : 0);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SaveState(string fingerprint, int count)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
+            var json = JsonSerializer.Serialize(
+                new { fingerprint, scannedAt = DateTime.Now, count });
+            File.WriteAllText(StatePath, json);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn("保存归档状态失败: " + ex.Message);
+        }
     }
 
     // ---------- 扫描来源 ----------
