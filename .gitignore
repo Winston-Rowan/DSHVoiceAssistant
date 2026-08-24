@@ -26,3 +26,7 @@ src/DSHVoiceAssistant/Config/软件清单.md
 
 # 测试结果
 TestResults/
+
+# 安装包暂存目录（发布用，不入库）
+release-stage/
+release/
